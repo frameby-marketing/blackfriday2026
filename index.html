@@ -1203,10 +1203,10 @@ dash.draw('revLine', (el) => {
   const lyK = (mode === 'cum' ? 'ly_cum_' : 'ly_') + ch, tyK = (mode === 'cum' ? 'ty_cum_' : 'ty_') + ch;
   const s = summary.find((r) => r.key === ch) || {};
   el.replaceChildren();
-  const W = Math.max(280, el.clientWidth), H = 280, top = 18, bottom = 34, right = 12;
+  const W = Math.max(280, el.clientWidth), H = 300, top = 26, bottom = 34, right = 22;
   const avgs = mode === 'daily' ? [s.ly_avg || 0, s.ty_avg || 0] : [];
   const maxV = d3.max([...days.map((r) => Math.max(r[lyK] || 0, r[tyK] || 0)), ...avgs]) || 1;
-  const y = d3.scaleLinear().domain([0, maxV * 1.08]).nice().range([H - bottom, top]);
+  const y = d3.scaleLinear().domain([0, maxV * 1.15]).nice().range([H - bottom, top]);
   const svg = newSvg(el, W, H, `${mode === 'cum' ? '누적' : '일별'} 매출 추이: ` + days.map((r) => `${r.day}일차 작년 ${r[lyK] === null ? '—' : fmt(r[lyK]) + '원'}, 올해 ${r[tyK] === null ? '—' : fmt(r[tyK]) + '원'}`).join('; '));
   const ticks = y.ticks(4);
   const left = textW(svg, ticks.map(won)) + 10;
@@ -1228,6 +1228,19 @@ dash.draw('revLine', (el) => {
     const pts = days.filter((r) => r[k] !== null);
     svg.append('path').datum(pts).attr('d', d3.line().x((r) => x(r.day)).y((r) => y(r[k]))).style('fill', 'none').style('stroke', c).attr('stroke-width', w);
     pts.forEach((r) => svg.append('circle').attr('cx', x(r.day)).attr('cy', y(r[k])).attr('r', 3.5).style('fill', c));
+  });
+  // 점마다 금액 표시: 올해는 점 위, 작년은 점 아래 (둘이 가까우면 위아래로 벌림)
+  const vlab = (v) => v >= 1e8 ? f1(v / 1e8) + '억' : fmt(Math.round(v / 1e4)) + '만';
+  days.forEach((r) => {
+    const ly = r[lyK], ty = r[tyK];
+    const tyAbove = ty === null || ly === null || ty >= ly;
+    [[ty, dash.colors[0], tyAbove, 700], [ly, C_LY, !tyAbove, 500]].forEach(([v, c, above, wgt]) => {
+      if (v === null) return;
+      svg.append('text').attr('class', 'bfd-pt').attr('x', x(r.day)).attr('y', y(v) + (above ? -9 : 15)).attr('text-anchor', 'middle')
+        .style('font-size', '11.5px').style('font-weight', wgt).style('fill', c === C_LY ? 'var(--color-fg)' : c)
+        .style('paint-order', 'stroke').style('stroke', 'var(--color-panel)').style('stroke-width', '3px').style('pointer-events', 'none')
+        .text(vlab(v));
+    });
   });
   const guide = svg.append('line').attr('y1', top).attr('y2', H - bottom).style('stroke', 'var(--cds-chart-axis)').style('opacity', 0);
   const tip = makeTip(el);
