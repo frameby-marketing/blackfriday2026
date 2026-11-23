@@ -1,0 +1,1838 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>프레임바이 블프 추이 대시보드</title>
+<script>
+(function () {
+  var t = null;
+  try { t = localStorage.getItem('bfd-theme'); } catch (e) {}
+  if (t !== 'light' && t !== 'dark') t = window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', t);
+})();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600&family=Noto+Serif+KR:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<style>
+:root {
+  color-scheme: light;
+  --font-anthropic-sans: "Noto Sans KR", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  --font-anthropic-serif: "Noto Serif KR", "AppleMyungjo", Georgia, serif;
+  --cds-font-size-title: clamp(1.7rem, 4vw, 2.3rem);
+  --cds-font-size-heading: 1.25rem;
+  --cds-font-size-caption: 0.8rem;
+  --cds-font-weight-medium: 600;
+  --cds-gap-xs: 6px; --cds-gap-sm: 10px; --cds-gap-md: 16px; --cds-gap-lg: 20px; --cds-gap-xl: 36px;
+  --cds-pad-md: 12px; --cds-pad-lg: 18px;
+  --cds-radius: 12px;
+
+  --color-bg: #f6f5f1;
+  --color-panel: #ffffff;
+  --color-fg: #1f1e1b;
+  --color-fg-muted: #6b6862;
+  --color-border-line: #e3e0d8;
+  --color-ok: #1d7f4a;
+  --color-warn: #b06d10;
+  --color-bad: #c23a3a;
+  --cds-text-secondary: #6b6862;
+  --cds-border: #dcd8cf;
+  --cds-surface-popover: #ffffff;
+  --cds-shadow-popover: 0 6px 20px rgba(0,0,0,.12);
+  --cds-chart-grid: #ebe8e1;
+  --cds-chart-axis: #9b978f;
+  --cds-chart-muted: #b9b5ad;
+  --cds-chart-reference: #8a867e;
+  --c0: #2f6bd8; --c1: #e07b2a; --c2: #2a9d8f; --c3: #c2457b; --c4: #7b5bd0; --c5: #9a7b26; --c6: #3f9bd6; --c7: #d05a5a;
+  --select-bg: #ffffff;
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --color-bg: #161614;
+  --color-panel: #21201d;
+  --color-fg: #ecebe6;
+  --color-fg-muted: #a5a29a;
+  --color-border-line: #36342f;
+  --color-ok: #4cc38a;
+  --color-warn: #e3a64a;
+  --color-bad: #ef6b6b;
+  --cds-text-secondary: #a5a29a;
+  --cds-border: #45423c;
+  --cds-surface-popover: #2b2a26;
+  --cds-shadow-popover: 0 6px 20px rgba(0,0,0,.45);
+  --cds-chart-grid: #2f2d29;
+  --cds-chart-axis: #77736b;
+  --cds-chart-muted: #6a675f;
+  --cds-chart-reference: #8a867e;
+  --c0: #5b8ff0; --c1: #f0974f; --c2: #45bcae; --c3: #e06b9c; --c4: #9c81ea; --c5: #c4a24a; --c6: #63b6ea; --c7: #ee7c7c;
+  --select-bg: #2b2a26;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --color-bg: #161614; --color-panel: #21201d; --color-fg: #ecebe6; --color-fg-muted: #a5a29a; --color-border-line: #36342f;
+    --color-ok: #4cc38a; --color-warn: #e3a64a; --color-bad: #ef6b6b; --cds-text-secondary: #a5a29a; --cds-border: #45423c;
+    --cds-surface-popover: #2b2a26; --cds-chart-grid: #2f2d29; --cds-chart-axis: #77736b; --cds-chart-muted: #6a675f;
+    --c0: #5b8ff0; --c1: #f0974f; --c2: #45bcae; --c3: #e06b9c; --c4: #9c81ea; --c5: #c4a24a; --c6: #63b6ea; --c7: #ee7c7c;
+    --select-bg: #2b2a26;
+  }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--color-bg);
+  color: var(--color-fg);
+  font-family: var(--font-anthropic-sans);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  transition: background-color .2s ease, color .2s ease;
+}
+.page { max-width: 1120px; margin: 0 auto; padding: 16px 16px 64px; }
+.topbar {
+  position: sticky; top: 0; z-index: 20;
+  display: flex; justify-content: flex-end; align-items: center;
+  padding: 10px 16px;
+  background: color-mix(in srgb, var(--color-bg) 88%, transparent);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+}
+.theme-toggle {
+  display: inline-flex; align-items: center; gap: 8px;
+  font: inherit; font-size: 13px; font-weight: 500;
+  color: var(--color-fg);
+  background: var(--color-panel);
+  border: 1px solid var(--color-border-line);
+  border-radius: 999px;
+  padding: 7px 14px 7px 11px;
+  cursor: pointer;
+  transition: border-color .15s ease, background-color .2s ease;
+}
+.theme-toggle:hover { border-color: var(--cds-chart-axis); }
+.theme-toggle:focus-visible { outline: 2px solid var(--c0); outline-offset: 2px; }
+.theme-toggle svg { width: 16px; height: 16px; }
+.theme-toggle .i-sun { display: none; }
+:root[data-theme="dark"] .theme-toggle .i-sun { display: block; }
+:root[data-theme="dark"] .theme-toggle .i-moon { display: none; }
+.dash-select {
+  font: inherit; font-size: 13px; color: var(--color-fg);
+  background: var(--select-bg);
+  border: 1px solid var(--color-border-line);
+  border-radius: 8px;
+  padding: 5px 28px 5px 10px;
+  appearance: none; -webkit-appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, var(--color-fg-muted) 50%), linear-gradient(135deg, var(--color-fg-muted) 50%, transparent 50%);
+  background-position: calc(100% - 15px) 52%, calc(100% - 10px) 52%;
+  background-size: 5px 5px; background-repeat: no-repeat;
+}
+.bfd-tip { padding: 8px 10px; border-radius: 8px; font-size: 12px; line-height: 1.5; white-space: nowrap; color: var(--color-fg); }
+.bfd-foot { margin-top: 40px; color: var(--color-fg-muted); font-size: var(--cds-font-size-caption); }
+
+.bfd{display:grid;gap:var(--cds-gap-xl);color:var(--color-fg)}
+.bfd p{margin:0}
+.bfd-h1{font-family:var(--font-anthropic-serif);font-weight:400;font-size:var(--cds-font-size-title);line-height:1.2;margin:0;text-wrap:balance}
+.bfd-h2{font-size:var(--cds-font-size-heading);font-weight:var(--cds-font-weight-medium);margin:0;text-wrap:balance}
+.bfd-head{display:grid;gap:var(--cds-gap-sm)}
+.bfd-eyebrow{font-size:var(--cds-font-size-caption);color:var(--color-fg-muted);letter-spacing:.04em}
+.bfd-period{color:var(--color-fg-muted);font-size:var(--cds-font-size-caption);line-height:1.6}
+.bfd-lede{font-size:1.05rem;line-height:1.65;max-width:68ch}
+.bfd-lede b{font-variant-numeric:tabular-nums}
+.bfd-basis{display:flex;flex-wrap:wrap;gap:var(--cds-gap-xs) var(--cds-gap-md);font-size:var(--cds-font-size-caption);color:var(--color-fg-muted)}
+.bfd-basis span{border:1px solid var(--color-border-line);border-radius:999px;padding:2px 10px}
+.bfd-part{display:grid;gap:var(--cds-gap-md);border-top:1px solid var(--color-border-line);padding-top:var(--cds-pad-lg)}
+.bfd-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:var(--cds-gap-md)}
+.bfd-card{background:var(--color-panel);border:1px solid var(--color-border-line);border-radius:var(--cds-radius);padding:var(--cds-pad-lg);display:grid;gap:var(--cds-gap-sm);min-width:0;align-content:start}
+.bfd-label{font-size:var(--cds-font-size-caption);color:var(--color-fg-muted)}
+.bfd-big{font-family:var(--font-anthropic-serif);font-weight:400;font-size:1.9rem;line-height:1.1;font-variant-numeric:tabular-nums}
+.bfd-big small{font-family:var(--font-anthropic-sans);font-size:.95rem;margin-left:2px;color:var(--color-fg-muted)}
+.bfd-sub{color:var(--color-fg-muted);font-size:var(--cds-font-size-caption);font-variant-numeric:tabular-nums;line-height:1.5}
+.bfd-sub b{color:var(--color-fg);font-weight:var(--cds-font-weight-medium)}
+.bfd-grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr));gap:var(--cds-gap-md)}
+.bfd-controls{display:flex;flex-wrap:wrap;gap:var(--cds-gap-sm);align-items:center}
+.bfd-controls label{font-size:var(--cds-font-size-caption);color:var(--color-fg-muted);display:flex;gap:6px;align-items:center}
+.bfd-chart{position:relative;min-height:160px}
+.bfd-chart svg{display:block;overflow:visible}
+.bfd-chart text{font-size:12px;fill:var(--cds-text-secondary)}
+.bfd-chart text.bfd-gl{fill:var(--color-fg);font-size:13px}
+.bfd-chart text.bfd-val{fill:var(--color-fg);font-variant-numeric:tabular-nums}
+.bfd-legend{display:flex;flex-wrap:wrap;gap:var(--cds-gap-xs) var(--cds-gap-md);font-size:var(--cds-font-size-caption);color:var(--color-fg-muted);font-variant-numeric:tabular-nums}
+.bfd-legend b{color:var(--color-fg);font-weight:var(--cds-font-weight-medium)}
+.bfd-sw{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+.bfd-dash{display:inline-block;width:16px;height:0;border-top:2px dashed;margin-right:6px;vertical-align:3px}
+.bfd-line{display:inline-block;width:16px;height:0;border-top:2.5px solid;margin-right:6px;vertical-align:3px}
+.bfd-tip{position:absolute;z-index:5;pointer-events:none;background:var(--cds-surface-popover);border:1px solid var(--cds-border);box-shadow:var(--cds-shadow-popover);border-radius:6px;padding:6px 8px;font-size:12px;line-height:1.5;white-space:nowrap;color:var(--color-fg)}
+.bfd-tip .bfd-m{color:var(--cds-text-secondary)}
+.bfd-tablewrap{overflow-x:auto}
+.bfd-table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums;font-size:13px}
+.bfd-table th,.bfd-table td{padding:7px 10px;border-bottom:1px solid var(--color-border-line);text-align:right;white-space:nowrap}
+.bfd-table th{font-weight:var(--cds-font-weight-medium);color:var(--color-fg-muted);font-size:12px;vertical-align:bottom}
+.bfd-table th:first-child,.bfd-table td:first-child,.bfd-table .bfd-l{text-align:left}
+.bfd-table td:first-child{font-weight:var(--cds-font-weight-medium)}
+.bfd-table .bfd-hl{font-weight:var(--cds-font-weight-medium)}
+.bfd-table .bfd-muted{color:var(--color-fg-muted)}
+.bfd-table tr.bfd-total td{font-weight:var(--cds-font-weight-medium);background:var(--color-bg)}
+.bfd-up{color:var(--color-ok)}
+.bfd-down{color:var(--color-bad)}
+.bfd-note{color:var(--color-fg-muted);font-size:var(--cds-font-size-caption);line-height:1.6;max-width:80ch}
+.bfd-donuts{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:var(--cds-gap-md);justify-items:center}
+.bfd-donut{display:grid;gap:var(--cds-gap-xs);justify-items:center;width:100%;position:relative}
+.bfd-donut p{font-size:13px;font-weight:var(--cds-font-weight-medium)}
+.bfd-warn{color:var(--color-warn)}
+.bfd-donuts-3{grid-template-columns:repeat(3,minmax(0,1fr));margin-bottom:var(--cds-gap-sm)}
+.bfd-donut .bfd-m{font-size:var(--cds-font-size-caption);color:var(--color-fg-muted)}
+.bfd-sub-row td:first-child{color:var(--color-fg-muted)}
+.bfd-alerts{display:grid;gap:var(--cds-gap-sm)}
+.bfd-alert{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px var(--cds-gap-sm);font-size:14px;line-height:1.5}
+.bfd-alert b{font-weight:var(--cds-font-weight-medium)}
+.bfd-alert-when{font-weight:var(--cds-font-weight-medium);font-variant-numeric:tabular-nums}
+.bfd-alert .bfd-m{color:var(--color-fg-muted);font-size:var(--cds-font-size-caption);font-variant-numeric:tabular-nums}
+.bfd-spark{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,190px),1fr));gap:var(--cds-gap-md)}
+.bfd-spark-item{display:grid;gap:4px;min-width:0;position:relative}
+.bfd-spark-item p{font-size:13px}
+.bfd-spark-item .bfd-m{font-size:var(--cds-font-size-caption);color:var(--color-fg-muted);font-variant-numeric:tabular-nums}
+.bfd-pending{border:1px dashed var(--color-border-line);border-radius:var(--cds-radius);padding:var(--cds-pad-md);color:var(--color-fg-muted);font-size:13px;line-height:1.6}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <button type="button" class="theme-toggle" id="theme-toggle" aria-label="다크 모드로 전환">
+    <svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+    <svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+    <span id="theme-label">다크 모드</span>
+  </button>
+</div>
+<main class="page">
+<div class="bfd">
+  <header class="bfd-head" id="overview">
+    <p class="bfd-eyebrow">프레임바이 · 블랙프라이데이 추이</p>
+    <h1 class="bfd-h1">블프 2026 vs 2025</h1>
+    <p class="bfd-period">올해 2026.11.20(금) ~ 11.30(월) 11일 · 작년 2025.11.17(월) ~ 12.1(월) 15일 · 매출은 자사몰, 스마트스토어, M-mall, 쿠팡 합계</p>
+    <p class="bfd-lede" data-read lang="ko">올해 <b><span data-draw="num" data-source="rev_summary" data-field="ty_days" data-where="key=total">—</span>일</b> 누적 매출은 <b><span data-draw="num" data-source="rev_summary" data-field="ty_sum" data-where="key=total">—</span>원</b>, 일평균 <b><span data-draw="num" data-source="rev_summary" data-field="ty_avg" data-where="key=total">—</span>원</b>으로 작년 전체 일평균의 <b><span data-draw="num" data-fmt="pct" data-source="rev_summary" data-field="avg_rate" data-where="key=total">—</span>%</b>입니다. 같은 1~<span data-draw="num" data-source="rev_summary" data-field="ty_days" data-where="key=total">—</span>일차 누적과 비교하면 <b><span data-draw="num" data-fmt="pct" data-source="rev_summary" data-field="same_rate" data-where="key=total">—</span>%</b>입니다.</p>
+    <div class="bfd-basis"><span>비교 기준 1 · 같은 일차끼리 (1일차 vs 1일차)</span><span>비교 기준 2 · 작년 15일 전체 일평균 vs 올해 누적 일평균</span></div>
+  </header>
+
+  <div class="bfd-kpis" id="kpis">
+    <div class="bfd-card" id="kpi-sum">
+      <p class="bfd-label">올해 누적 매출</p>
+      <p class="bfd-big"><span data-draw="num" data-source="rev_summary" data-field="ty_sum" data-where="key=total">—</span><small>원</small></p>
+      <p class="bfd-sub"><span data-draw="num" data-source="rev_summary" data-field="ty_days" data-where="key=total">—</span>일 누적 · 4개 채널 합계</p>
+    </div>
+    <div class="bfd-card" id="kpi-avg">
+      <p class="bfd-label">올해 누적 일평균 매출</p>
+      <p class="bfd-big"><span data-draw="num" data-source="rev_summary" data-field="ty_avg" data-where="key=total">—</span><small>원</small></p>
+      <p class="bfd-sub">작년 15일 일평균 <span data-draw="num" data-source="rev_summary" data-field="ly_avg" data-where="key=total">—</span>원의 <b><span data-draw="num" data-fmt="pct" data-source="rev_summary" data-field="avg_rate" data-where="key=total">—</span>%</b></p>
+    </div>
+    <div class="bfd-card" id="kpi-same">
+      <p class="bfd-label">같은 일차 누적 비교</p>
+      <p class="bfd-big"><span data-draw="num" data-fmt="pct" data-source="rev_summary" data-field="same_rate" data-where="key=total">—</span><small>%</small></p>
+      <p class="bfd-sub">작년 1~<span data-draw="num" data-source="rev_summary" data-field="ty_days" data-where="key=total">—</span>일차 누적 <span data-draw="num" data-source="rev_summary" data-field="ly_same" data-where="key=total">—</span>원 대비</p>
+    </div>
+    <div class="bfd-card" id="kpi-progress">
+      <p class="bfd-label">행사 진행</p>
+      <p class="bfd-big"><span data-draw="num" data-source="rev_summary" data-field="ty_days" data-where="key=total">—</span><small>/ <span data-draw="num" data-source="rev_summary" data-field="event_days" data-where="key=total">—</span>일</small></p>
+      <p class="bfd-sub">남은 행사 <span data-draw="num" data-source="rev_summary" data-field="remain_days" data-where="key=total">—</span>일</p>
+    </div>
+  </div>
+
+  <!-- 매출액 추이 -->
+  <section class="bfd-part" id="revenue">
+    <h2 class="bfd-h2">매출액 추이</h2>
+    <div class="bfd-card" id="card-rev-line">
+      <div class="bfd-controls">
+        <label for="bfd-ch">채널
+          <select class="dash-select" id="bfd-ch" aria-label="채널">
+            <option value="total">전체 (4개 채널)</option>
+            <option value="own">자사몰</option>
+            <option value="naver">스마트스토어</option>
+            <option value="mmall">M-mall</option>
+            <option value="coupang">쿠팡</option>
+          </select>
+        </label>
+        <label for="bfd-mode">보기
+          <select class="dash-select" id="bfd-mode" aria-label="일별 또는 누적">
+            <option value="daily">일별 매출</option>
+            <option value="cum">누적 매출</option>
+          </select>
+        </label>
+      </div>
+      <div class="bfd-chart" id="chart-rev-line" data-draw="revLine" data-source="rev_days rev_summary" style="min-height:320px"></div>
+      <p class="bfd-note">작년 1일차는 월요일, 올해 1일차는 금요일입니다. 같은 일차라도 요일이 다르니 마우스를 올려 날짜와 요일을 함께 보세요. 올해 행사는 11일차(11/30)에 끝납니다.</p>
+    </div>
+
+    <div class="bfd-card" id="card-rev-summary">
+      <p class="bfd-label">채널별 일평균 · 같은 일차 누적 비교</p>
+      <div class="bfd-tablewrap">
+        <table class="bfd-table" id="table-rev-summary" data-source="rev_summary" data-row-key="channel">
+          <thead><tr>
+            <th data-field="channel">채널</th>
+            <th data-field="ly_sum">작년 15일<br>합계</th>
+            <th data-field="ly_avg">작년<br>일평균</th>
+            <th data-field="ty_sum">올해<br>누적</th>
+            <th data-field="ty_avg">올해 누적<br>일평균</th>
+            <th data-field="avg_rate">일평균<br>비교</th>
+            <th data-field="ly_same">작년 같은<br>일차 누적</th>
+            <th data-field="same_rate">같은 일차<br>비교</th>
+            <th data-field="ly_share">채널 비중<br>작년</th>
+            <th data-field="ty_share">채널 비중<br>올해</th>
+          </tr></thead>
+          <tbody data-draw="revSummaryTable"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="bfd-card" id="card-rev-days">
+      <p class="bfd-label">일차별 매출 (4개 채널 합계)</p>
+      <div class="bfd-tablewrap">
+        <table class="bfd-table" id="table-rev-days" data-source="rev_days" data-row-key="day">
+          <thead><tr>
+            <th data-field="day">일차</th>
+            <th data-field="ly_date" class="bfd-l">작년 날짜</th>
+            <th data-field="ly_total">작년 매출</th>
+            <th data-field="ty_date" class="bfd-l">올해 날짜</th>
+            <th data-field="ty_total">올해 매출</th>
+            <th data-field="rate">작년<br>대비</th>
+            <th data-field="ly_cum_total">작년<br>누적</th>
+            <th data-field="ty_cum_total">올해<br>누적</th>
+            <th data-field="cum_rate">누적<br>대비</th>
+          </tr></thead>
+          <tbody data-draw="revDaysTable"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- 행사 기간 ROAS -->
+  <section class="bfd-part" id="roas">
+    <h2 class="bfd-h2">행사 기간 ROAS</h2>
+    <p class="bfd-note">ROAS = 총유입매출 ÷ 총광고비 × 100. 누적 ROAS는 행사 시작부터 그날까지의 합계로 계산합니다. 받은 총유입매출은 매일 4개 채널 매출 합계와 같습니다.</p>
+    <div class="bfd-kpis">
+      <div class="bfd-card" id="kpi-roas">
+        <p class="bfd-label">누적 ROAS</p>
+        <p class="bfd-big"><span data-draw="num" data-fmt="pct" data-source="roas_summary" data-field="roas" data-row="0">—</span><small>%</small></p>
+        <p class="bfd-sub"><span data-draw="num" data-source="roas_summary" data-field="days" data-row="0">—</span>일 누적</p>
+      </div>
+      <div class="bfd-card" id="kpi-spend">
+        <p class="bfd-label">누적 광고비</p>
+        <p class="bfd-big"><span data-draw="num" data-source="roas_summary" data-field="spend" data-row="0">—</span><small>원</small></p>
+        <p class="bfd-sub">일평균 <span data-draw="num" data-source="roas_summary" data-field="avg_spend" data-row="0">—</span>원</p>
+      </div>
+      <div class="bfd-card" id="kpi-adrev">
+        <p class="bfd-label">누적 유입매출</p>
+        <p class="bfd-big"><span data-draw="num" data-source="roas_summary" data-field="revenue" data-row="0">—</span><small>원</small></p>
+        <p class="bfd-sub">일평균 <span data-draw="num" data-source="roas_summary" data-field="avg_revenue" data-row="0">—</span>원</p>
+      </div>
+    </div>
+    <div class="bfd-card" id="card-roas-line">
+      <p class="bfd-label">일별 ROAS와 누적 ROAS</p>
+      <div class="bfd-chart" id="chart-roas-line" data-draw="roasLine" data-source="roas_days" style="min-height:280px"></div>
+    </div>
+    <div class="bfd-card" id="card-roas-bars">
+      <p class="bfd-label">일별 광고비 vs 유입매출</p>
+      <div class="bfd-chart" id="chart-roas-bars" data-draw="roasBars" data-source="roas_days" style="min-height:280px"></div>
+    </div>
+    <div class="bfd-card" id="card-roas-table">
+      <div class="bfd-tablewrap">
+        <table class="bfd-table" id="table-roas" data-source="roas_days" data-row-key="day">
+          <thead><tr>
+            <th data-field="day">일차</th>
+            <th data-field="date" class="bfd-l">일자</th>
+            <th data-field="spend">광고비</th>
+            <th data-field="revenue">유입매출</th>
+            <th data-field="roas">ROAS</th>
+            <th data-field="cum_spend">누적 광고비</th>
+            <th data-field="cum_revenue">누적 유입매출</th>
+            <th data-field="cum_roas">누적 ROAS</th>
+          </tr></thead>
+          <tbody data-draw="roasTable"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- 주요 제품 판매수량 -->
+  <section class="bfd-part" id="products">
+    <h2 class="bfd-h2">주요 제품 판매수량 추이</h2>
+    <div class="bfd-grid2">
+      <div class="bfd-card" id="card-qty-avg">
+        <p class="bfd-label">제품별 일평균 판매수량</p>
+        <div class="bfd-legend"><span><i class="bfd-sw" data-swatch="muted"></i>작년 15일 일평균</span><span><i class="bfd-sw" data-swatch="0"></i>올해 누적 일평균</span></div>
+        <div class="bfd-chart" id="chart-qty-avg" data-draw="qtyAvg" data-source="qty_summary"></div>
+      </div>
+      <div class="bfd-card" id="card-qty-days">
+        <div class="bfd-controls">
+          <label for="bfd-product">제품
+            <select class="dash-select" id="bfd-product" aria-label="제품">
+              <option value="맥세이프 킥프레임">맥세이프 킥프레임</option>
+              <option value="맥세이프 케이스">맥세이프 케이스</option>
+              <option value="DW 프로">DW 프로</option>
+              <option value="DW 플러스">DW 플러스</option>
+              <option value="DW 베이직">DW 베이직</option>
+              <option value="PH">PH</option>
+              <option value="FT 2개입">FT 2개입</option>
+              <option value="FT 4개입">FT 4개입</option>
+            </select>
+          </label>
+        </div>
+        <p class="bfd-label">일차별 판매수량</p>
+        <div class="bfd-chart" id="chart-qty-days" data-draw="qtyDays" data-source="qty_days qty_summary" style="min-height:300px"></div>
+      </div>
+    </div>
+    <div class="bfd-card" id="card-qty-table">
+      <p class="bfd-label">제품별 판매수량 비교</p>
+      <div class="bfd-tablewrap">
+        <table class="bfd-table" id="table-qty" data-source="qty_summary" data-row-key="product">
+          <thead><tr>
+            <th data-field="product">제품</th>
+            <th data-field="status" class="bfd-l">상태</th>
+            <th data-field="ly_sum">작년 15일<br>합계</th>
+            <th data-field="ly_avg">작년<br>일평균</th>
+            <th data-field="ty_sum">올해<br>누적</th>
+            <th data-field="ty_avg">올해 누적<br>일평균</th>
+            <th data-field="avg_rate">일평균<br>비교</th>
+            <th data-field="ly_same">작년 같은<br>일차 누적</th>
+            <th data-field="same_rate">같은 일차<br>비교</th>
+          </tr></thead>
+          <tbody data-draw="qtyTable"></tbody>
+        </table>
+      </div>
+      <p class="bfd-note">판매수량은 자사몰+스마트스토어 합산입니다. FT 4개입은 작년 프레임팁 스타터팩과 같은 제품으로 보고 비교했습니다.</p>
+    </div>
+  </section>
+
+  <!-- 제품별 매출 비중 -->
+  <section class="bfd-part" id="share">
+    <h2 class="bfd-h2">제품별 매출 비중</h2>
+    <div class="bfd-card" id="card-share">
+      <div class="bfd-chart" id="chart-share" data-draw="shareDonuts" data-source="prod_share"></div>
+      <p class="bfd-note">주요 제품 매출 안에서의 비중입니다. 제품 매출은 판매수량 × 행사 할인가로 계산한 추정치라 쿠폰·옵션에 따라 실제 결제액과 다를 수 있습니다. DW 플러스와 DW 베이직은 하나로 묶었습니다.</p>
+    </div>
+  </section>
+
+  <!-- 블프 직전 대비 -->
+  <section class="bfd-part" id="prebf">
+    <h2 class="bfd-h2">블프 직전 30일 · 7일 대비</h2>
+    <p class="bfd-note">자사몰+스마트스토어 합산입니다. 직전 30일은 10/21~11/19, 직전 7일은 11/13~11/19의 일평균이고, 블프는 11/20부터 지금까지의 누적 일평균입니다. 판매수량은 전환수로 비교합니다(직전 기간 데이터가 전환수 기준). 전환율 = 전환수 ÷ 노출수. 프레임팁은 2개입과 4개입을 합친 값입니다.</p>
+    <div class="bfd-card" id="card-funnel">
+      <div class="bfd-controls">
+        <label for="bfd-metric">지표
+          <select class="dash-select" id="bfd-metric" aria-label="지표">
+            <option value="conv">판매수량 (전환수)</option>
+            <option value="imp">노출수</option>
+            <option value="rate">전환율</option>
+          </select>
+        </label>
+      </div>
+      <div class="bfd-legend"><span><i class="bfd-sw" data-swatch="muted"></i>직전 30일 일평균</span><span><i class="bfd-sw" data-swatch="1"></i>직전 7일 일평균</span><span><i class="bfd-sw" data-swatch="0"></i>블프 누적 일평균</span></div>
+      <div class="bfd-chart" id="chart-funnel" data-draw="funnelBars" data-source="funnel_cmp"></div>
+    </div>
+    <div class="bfd-card" id="card-funnel-line">
+      <div class="bfd-controls">
+        <label for="bfd-fproduct">제품
+          <select class="dash-select" id="bfd-fproduct" aria-label="제품">
+            <option value="킥프레임">킥프레임</option>
+            <option value="PH">PH</option>
+            <option value="DW 프로">DW 프로</option>
+            <option value="프레임팁">프레임팁</option>
+          </select>
+        </label>
+      </div>
+      <p class="bfd-label">일별 흐름 · 위 지표 선택을 따릅니다</p>
+      <div class="bfd-chart" id="chart-funnel-line" data-draw="funnelLine" data-source="funnel_days funnel_cmp" style="min-height:300px"></div>
+    </div>
+    <div class="bfd-card" id="card-funnel-conv">
+      <p class="bfd-label">① 판매수량 (전환수) · 일평균</p>
+      <div class="bfd-tablewrap">
+        <table class="bfd-table" id="table-funnel-conv" data-source="funnel_cmp" data-row-key="product">
+          <thead><tr>
+            <th data-field="product">제품</th>
+            <th data-field="conv30">직전 30일<br>평균</th>
+            <th data-field="conv7">직전 7일<br>평균</th>
+            <th data-field="convbf">블프 누적<br>평균</th>
+            <th data-field="conv_vs30">블프<br>vs 30일</th>
+            <th data-field="conv_vs7">블프<br>vs 7일</th>
+          </tr></thead>
+          <tbody data-draw="funnelTableConv"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="bfd-card" id="card-funnel-imp">
+      <p class="bfd-label">② 노출수 · 일평균</p>
+      <div class="bfd-tablewrap">
+        <table class="bfd-table" id="table-funnel-imp" data-source="funnel_cmp" data-row-key="product">
+          <thead><tr>
+            <th data-field="product">제품</th>
+            <th data-field="imp30">직전 30일<br>평균</th>
+            <th data-field="imp7">직전 7일<br>평균</th>
+            <th data-field="impbf">블프 누적<br>평균</th>
+            <th data-field="imp_vs30">블프<br>vs 30일</th>
+            <th data-field="imp_vs7">블프<br>vs 7일</th>
+          </tr></thead>
+          <tbody data-draw="funnelTableImp"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="bfd-card" id="card-funnel-rate">
+      <p class="bfd-label">③ 전환율 (전환수 ÷ 노출수)</p>
+      <div class="bfd-tablewrap">
+        <table class="bfd-table" id="table-funnel-rate" data-source="funnel_cmp" data-row-key="product">
+          <thead><tr>
+            <th data-field="product">제품</th>
+            <th data-field="rate30">직전 30일</th>
+            <th data-field="rate7">직전 7일</th>
+            <th data-field="ratebf">블프 누적</th>
+            <th data-field="rate_vs30">블프 vs 30일<br>(%p)</th>
+            <th data-field="rate_vs7">블프 vs 7일<br>(%p)</th>
+          </tr></thead>
+          <tbody data-draw="funnelTableRate"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- 옵션별 판매 추이 -->
+  <section class="bfd-part" id="options">
+    <h2 class="bfd-h2">옵션별 판매수량 · 직전 30일 · 7일 대비</h2>
+    <p class="bfd-note">상세 옵션별 판매수량 기준입니다. 직전 30일은 10/21~11/19, 직전 7일은 11/13~11/19의 일평균이고, 블프는 11/20부터 지금까지의 누적 일평균입니다. 제품 값은 그 제품 옵션들의 합이며, 프레임팁은 2개입 4종과 스타터팩(4개입)을 한 제품으로 묶었습니다. 위 노출·전환 데이터의 전환수와는 집계 기준이 달라 숫자가 다를 수 있습니다.</p>
+    <div class="bfd-card" id="card-opt-product">
+      <p class="bfd-label">제품별 일평균 판매수량 · 블프 때 얼마나 올랐나</p>
+      <div class="bfd-legend"><span><i class="bfd-sw" data-swatch="muted"></i>직전 30일 일평균</span><span><i class="bfd-sw" data-swatch="1"></i>직전 7일 일평균</span><span><i class="bfd-sw" data-swatch="0"></i>블프 누적 일평균</span></div>
+      <div class="bfd-chart" id="chart-opt-product" data-draw="optProductBars" data-source="option_cmp"></div>
+    </div>
+    <div class="bfd-card" id="card-opt-mix-ph">
+      <p class="bfd-label">PH 색상별 판매 비중 · 실버 vs 블랙</p>
+      <div class="bfd-chart" id="chart-opt-mix-ph" data-draw="optMix" data-group="PH" data-source="option_cmp"></div>
+      <div class="bfd-tablewrap">
+        <table class="bfd-table" id="table-mix-ph" data-source="option_cmp" data-row-key="name">
+          <thead><tr>
+            <th data-field="name">색상</th>
+            <th data-field="share30">직전 30일</th>
+            <th data-field="share7">직전 7일</th>
+            <th data-field="sharebf">블프 누적</th>
+            <th data-field="share_vs30">블프 vs 30일<br>(%p)</th>
+            <th data-field="share_vs7">블프 vs 7일<br>(%p)</th>
+          </tr></thead>
+          <tbody data-draw="mixTable" data-group="PH"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="bfd-card" id="card-opt-mix-ft">
+      <p class="bfd-label">프레임팁 옵션별 판매 비중 · 라이트 · 밸런스드 · 펌 · 솔리드 · 스타터팩</p>
+      <div class="bfd-chart" id="chart-opt-mix-ft" data-draw="optMix" data-group="프레임팁" data-source="option_cmp"></div>
+      <div class="bfd-tablewrap">
+        <table class="bfd-table" id="table-mix-ft" data-source="option_cmp" data-row-key="name">
+          <thead><tr>
+            <th data-field="name">옵션</th>
+            <th data-field="share30">직전 30일</th>
+            <th data-field="share7">직전 7일</th>
+            <th data-field="sharebf">블프 누적</th>
+            <th data-field="share_vs30">블프 vs 30일<br>(%p)</th>
+            <th data-field="share_vs7">블프 vs 7일<br>(%p)</th>
+          </tr></thead>
+          <tbody data-draw="mixTable" data-group="프레임팁"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="bfd-card" id="card-opt-line">
+      <div class="bfd-controls">
+        <label for="bfd-opt">제품 · 옵션
+          <select class="dash-select" id="bfd-opt" aria-label="제품 또는 옵션">
+            <option value="킥프레임">킥프레임 (제품)</option>
+            <option value="PH">PH (제품)</option>
+            <option value="PH 실버">└ PH 실버</option>
+            <option value="PH 블랙">└ PH 블랙</option>
+            <option value="DW 프로">DW 프로 (제품)</option>
+            <option value="프레임팁">프레임팁 (제품)</option>
+            <option value="프레임팁 라이트">└ 프레임팁 라이트</option>
+            <option value="프레임팁 밸런스드">└ 프레임팁 밸런스드</option>
+            <option value="프레임팁 펌">└ 프레임팁 펌</option>
+            <option value="프레임팁 솔리드">└ 프레임팁 솔리드</option>
+            <option value="프레임팁 스타터팩">└ 프레임팁 스타터팩</option>
+          </select>
+        </label>
+      </div>
+      <p class="bfd-label">일별 판매수량 흐름</p>
+      <div class="bfd-chart" id="chart-opt-line" data-draw="optLine" data-source="option_trend option_cmp" style="min-height:300px"></div>
+    </div>
+    <div class="bfd-card" id="card-opt-qty">
+      <p class="bfd-label">① 판매수량 · 일평균</p>
+      <div class="bfd-tablewrap">
+        <table class="bfd-table" id="table-opt-qty" data-source="option_cmp" data-row-key="name">
+          <thead><tr>
+            <th data-field="name">제품 · 옵션</th>
+            <th data-field="avg30">직전 30일<br>평균</th>
+            <th data-field="avg7">직전 7일<br>평균</th>
+            <th data-field="avgbf">블프 누적<br>평균</th>
+            <th data-field="vs30">블프<br>vs 30일</th>
+            <th data-field="vs7">블프<br>vs 7일</th>
+          </tr></thead>
+          <tbody data-draw="optQtyTable"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- 재고 현황 -->
+  <section class="bfd-part" id="inventory">
+    <h2 class="bfd-h2">재고 현황 · 옵션별</h2>
+    <p class="bfd-note">받은 재고는 11/20 블프 시작 시점 재고입니다. 블프 기간 옵션별 판매수량을 빼서 현재 재고를 계산합니다. 품절 예정일은 <b>11/30까지는 블프 누적 일평균</b>으로, <b>행사가 끝난 12/1부터는 직전 30일(10/21~11/19) 일평균</b>으로 팔린다고 보고 계산합니다. "행사 후 한 달 내 품절"은 12/30 이전 품절 예정입니다. 입고 예정 수량은 현재 재고에 넣지 않고 따로 더해 계산합니다. 현재 재고가 마이너스면 재고보다 더 많이 팔린 수량입니다. 옵션별 판매수량은 위 제품 판매수량 표와 집계 기준이 달라 합계가 조금 다를 수 있습니다.</p>
+    <div class="bfd-card" id="card-inv-alerts">
+      <p class="bfd-label">품절 · 품절 예정 옵션</p>
+      <div data-draw="invAlerts" data-source="inventory_status"></div>
+    </div>
+    <div class="bfd-card" id="card-inv-bars">
+      <p class="bfd-label">현재 재고와 품절 예정일</p>
+      <div class="bfd-legend"><span><i class="bfd-sw" data-swatch="ok"></i>충분 (행사 후 한 달 넘게 버팀)</span><span><i class="bfd-sw" data-swatch="warn"></i>행사 후 한 달 내 품절 · 입고로 해결</span><span><i class="bfd-sw" data-swatch="bad"></i>품절 · 행사 중 품절 예정</span><span><i class="bfd-sw" data-swatch="incoming"></i>입고 예정</span><span><i class="bfd-line" data-swatch-line="fg"></i>행사 종료까지 필요한 수량</span></div>
+      <div class="bfd-chart" id="chart-inventory" data-draw="invBars" data-source="inventory_status"></div>
+    </div>
+    <div class="bfd-card" id="card-inventory">
+      <p class="bfd-label">옵션별 재고 상세</p>
+      <div class="bfd-tablewrap">
+        <table class="bfd-table" id="table-inventory" data-source="inventory_status" data-row-key="option">
+          <thead><tr>
+            <th data-field="option">옵션</th>
+            <th data-field="status" class="bfd-l">상태</th>
+            <th data-field="stockout" class="bfd-l">품절 예정</th>
+            <th data-field="stock">블프 시작 재고<br>(11/20)</th>
+            <th data-field="bf_sold">블프 누적<br>판매</th>
+            <th data-field="current">현재<br>재고</th>
+            <th data-field="avg">블프<br>일평균</th>
+            <th data-field="need">11/30까지<br>필요 수량</th>
+            <th data-field="end_stock">11/30<br>예상 재고</th>
+            <th data-field="post_avg">행사 후 일평균<br>(직전 30일)</th>
+            <th data-field="incoming">입고<br>예정</th>
+            <th data-field="with_incoming">입고 후<br>재고</th>
+            <th data-field="stockout_incoming" class="bfd-l">입고 후<br>품절 예정</th>
+          </tr></thead>
+          <tbody data-draw="invTable"></tbody>
+        </table>
+      </div>
+      <p class="bfd-note">PH 실버 입고 예정 1,290개는 11/23 또는 11/24 입고 예정입니다. 입고가 확인되면 현재 재고에 반영합니다.</p>
+    </div>
+    <div class="bfd-card" id="card-option-trend">
+      <p class="bfd-label">옵션별 일별 판매 추이 (블프 1~11일차)</p>
+      <div class="bfd-chart" id="chart-option-trend" data-draw="optSpark" data-source="option_days inventory_status"></div>
+    </div>
+  </section>
+</div>
+
+<p class="bfd-foot">데이터 기준: 2026-11-22(일) 3일차까지 · 프레임바이 블프 추이 대시보드</p>
+</main>
+<script>
+
+/* ---- 대시보드 데이터 (CSV에서 생성) ---- */
+const RAW = {"revenue_daily":[{"year":"2025","day":"1","date":"2025-11-17","weekday":"월","own":"6913198","naver":"6647949","mmall":"481580","coupang":"2161285"},{"year":"2025","day":"2","date":"2025-11-18","weekday":"화","own":"5529333","naver":"4642163","mmall":"702108","coupang":"1683885"},{"year":"2025","day":"3","date":"2025-11-19","weekday":"수","own":"4590590","naver":"3751870","mmall":"715581","coupang":"1540700"},{"year":"2025","day":"4","date":"2025-11-20","weekday":"목","own":"4244173","naver":"3626140","mmall":"573384","coupang":"1442140"},{"year":"2025","day":"5","date":"2025-11-21","weekday":"금","own":"5743843","naver":"5621943","mmall":"717248","coupang":"1284220"},{"year":"2025","day":"6","date":"2025-11-22","weekday":"토","own":"5516650","naver":"4140933","mmall":"914303","coupang":"1272565"},{"year":"2025","day":"7","date":"2025-11-23","weekday":"일","own":"5275160","naver":"5092146","mmall":"486284","coupang":"903658"},{"year":"2025","day":"8","date":"2025-11-24","weekday":"월","own":"4728720","naver":"7272470","mmall":"939902","coupang":"1362445"},{"year":"2025","day":"9","date":"2025-11-25","weekday":"화","own":"4852220","naver":"6646099","mmall":"897364","coupang":"1216075"},{"year":"2025","day":"10","date":"2025-11-26","weekday":"수","own":"5274353","naver":"7180678","mmall":"685142","coupang":"1239945"},{"year":"2025","day":"11","date":"2025-11-27","weekday":"목","own":"3563355","naver":"6710622","mmall":"755629","coupang":"1308286"},{"year":"2025","day":"12","date":"2025-11-28","weekday":"금","own":"4538530","naver":"5637261","mmall":"546814","coupang":"1516221"},{"year":"2025","day":"13","date":"2025-11-29","weekday":"토","own":"4621133","naver":"5722426","mmall":"465337","coupang":"1451415"},{"year":"2025","day":"14","date":"2025-11-30","weekday":"일","own":"6048888","naver":"10593105","mmall":"743097","coupang":"1553230"},{"year":"2025","day":"15","date":"2025-12-01","weekday":"월","own":"4456070","naver":"7245353","mmall":"593338","coupang":"1885303"},{"year":"2026","day":"1","date":"2026-11-20","weekday":"금","own":"3409900","naver":"5306290","mmall":"525280","coupang":"645820"},{"year":"2026","day":"2","date":"2026-11-21","weekday":"토","own":"1677900","naver":"2124450","mmall":"521700","coupang":"888468"},{"year":"2026","day":"3","date":"2026-11-22","weekday":"일","own":"1630650","naver":"2517450","mmall":"725530","coupang":"356125"}],"product_qty_daily":[{"year":"2025","day":"1","date":"2025-11-17","product":"맥세이프 킥프레임","qty":"130"},{"year":"2025","day":"1","date":"2025-11-17","product":"맥세이프 케이스","qty":"122"},{"year":"2025","day":"1","date":"2025-11-17","product":"DW 프로","qty":"29"},{"year":"2025","day":"1","date":"2025-11-17","product":"DW 플러스","qty":"14"},{"year":"2025","day":"1","date":"2025-11-17","product":"DW 베이직","qty":"4"},{"year":"2025","day":"1","date":"2025-11-17","product":"PH","qty":"46"},{"year":"2025","day":"1","date":"2025-11-17","product":"FT 2개입","qty":"7"},{"year":"2025","day":"1","date":"2025-11-17","product":"FT 4개입","qty":"49"},{"year":"2025","day":"2","date":"2025-11-18","product":"맥세이프 킥프레임","qty":"74"},{"year":"2025","day":"2","date":"2025-11-18","product":"맥세이프 케이스","qty":"86"},{"year":"2025","day":"2","date":"2025-11-18","product":"DW 프로","qty":"37"},{"year":"2025","day":"2","date":"2025-11-18","product":"DW 플러스","qty":"23"},{"year":"2025","day":"2","date":"2025-11-18","product":"DW 베이직","qty":"5"},{"year":"2025","day":"2","date":"2025-11-18","product":"PH","qty":"36"},{"year":"2025","day":"2","date":"2025-11-18","product":"FT 2개입","qty":"7"},{"year":"2025","day":"2","date":"2025-11-18","product":"FT 4개입","qty":"34"},{"year":"2025","day":"3","date":"2025-11-19","product":"맥세이프 킥프레임","qty":"53"},{"year":"2025","day":"3","date":"2025-11-19","product":"맥세이프 케이스","qty":"64"},{"year":"2025","day":"3","date":"2025-11-19","product":"DW 프로","qty":"33"},{"year":"2025","day":"3","date":"2025-11-19","product":"DW 플러스","qty":"13"},{"year":"2025","day":"3","date":"2025-11-19","product":"DW 베이직","qty":"9"},{"year":"2025","day":"3","date":"2025-11-19","product":"PH","qty":"36"},{"year":"2025","day":"3","date":"2025-11-19","product":"FT 2개입","qty":"13"},{"year":"2025","day":"3","date":"2025-11-19","product":"FT 4개입","qty":"34"},{"year":"2025","day":"4","date":"2025-11-20","product":"맥세이프 킥프레임","qty":"60"},{"year":"2025","day":"4","date":"2025-11-20","product":"맥세이프 케이스","qty":"62"},{"year":"2025","day":"4","date":"2025-11-20","product":"DW 프로","qty":"20"},{"year":"2025","day":"4","date":"2025-11-20","product":"DW 플러스","qty":"11"},{"year":"2025","day":"4","date":"2025-11-20","product":"DW 베이직","qty":"5"},{"year":"2025","day":"4","date":"2025-11-20","product":"PH","qty":"42"},{"year":"2025","day":"4","date":"2025-11-20","product":"FT 2개입","qty":"15"},{"year":"2025","day":"4","date":"2025-11-20","product":"FT 4개입","qty":"32"},{"year":"2025","day":"5","date":"2025-11-21","product":"맥세이프 킥프레임","qty":"48"},{"year":"2025","day":"5","date":"2025-11-21","product":"맥세이프 케이스","qty":"43"},{"year":"2025","day":"5","date":"2025-11-21","product":"DW 프로","qty":"38"},{"year":"2025","day":"5","date":"2025-11-21","product":"DW 플러스","qty":"10"},{"year":"2025","day":"5","date":"2025-11-21","product":"DW 베이직","qty":"9"},{"year":"2025","day":"5","date":"2025-11-21","product":"PH","qty":"162"},{"year":"2025","day":"5","date":"2025-11-21","product":"FT 2개입","qty":"8"},{"year":"2025","day":"5","date":"2025-11-21","product":"FT 4개입","qty":"36"},{"year":"2025","day":"6","date":"2025-11-22","product":"맥세이프 킥프레임","qty":"55"},{"year":"2025","day":"6","date":"2025-11-22","product":"맥세이프 케이스","qty":"48"},{"year":"2025","day":"6","date":"2025-11-22","product":"DW 프로","qty":"28"},{"year":"2025","day":"6","date":"2025-11-22","product":"DW 플러스","qty":"13"},{"year":"2025","day":"6","date":"2025-11-22","product":"DW 베이직","qty":"5"},{"year":"2025","day":"6","date":"2025-11-22","product":"PH","qty":"113"},{"year":"2025","day":"6","date":"2025-11-22","product":"FT 2개입","qty":"6"},{"year":"2025","day":"6","date":"2025-11-22","product":"FT 4개입","qty":"28"},{"year":"2025","day":"7","date":"2025-11-23","product":"맥세이프 킥프레임","qty":"45"},{"year":"2025","day":"7","date":"2025-11-23","product":"맥세이프 케이스","qty":"54"},{"year":"2025","day":"7","date":"2025-11-23","product":"DW 프로","qty":"37"},{"year":"2025","day":"7","date":"2025-11-23","product":"DW 플러스","qty":"11"},{"year":"2025","day":"7","date":"2025-11-23","product":"DW 베이직","qty":"8"},{"year":"2025","day":"7","date":"2025-11-23","product":"PH","qty":"136"},{"year":"2025","day":"7","date":"2025-11-23","product":"FT 2개입","qty":"8"},{"year":"2025","day":"7","date":"2025-11-23","product":"FT 4개입","qty":"26"},{"year":"2025","day":"8","date":"2025-11-24","product":"맥세이프 킥프레임","qty":"49"},{"year":"2025","day":"8","date":"2025-11-24","product":"맥세이프 케이스","qty":"60"},{"year":"2025","day":"8","date":"2025-11-24","product":"DW 프로","qty":"41"},{"year":"2025","day":"8","date":"2025-11-24","product":"DW 플러스","qty":"19"},{"year":"2025","day":"8","date":"2025-11-24","product":"DW 베이직","qty":"5"},{"year":"2025","day":"8","date":"2025-11-24","product":"PH","qty":"150"},{"year":"2025","day":"8","date":"2025-11-24","product":"FT 2개입","qty":"11"},{"year":"2025","day":"8","date":"2025-11-24","product":"FT 4개입","qty":"31"},{"year":"2025","day":"9","date":"2025-11-25","product":"맥세이프 킥프레임","qty":"42"},{"year":"2025","day":"9","date":"2025-11-25","product":"맥세이프 케이스","qty":"66"},{"year":"2025","day":"9","date":"2025-11-25","product":"DW 프로","qty":"30"},{"year":"2025","day":"9","date":"2025-11-25","product":"DW 플러스","qty":"15"},{"year":"2025","day":"9","date":"2025-11-25","product":"DW 베이직","qty":"11"},{"year":"2025","day":"9","date":"2025-11-25","product":"PH","qty":"183"},{"year":"2025","day":"9","date":"2025-11-25","product":"FT 2개입","qty":"12"},{"year":"2025","day":"9","date":"2025-11-25","product":"FT 4개입","qty":"23"},{"year":"2025","day":"10","date":"2025-11-26","product":"맥세이프 킥프레임","qty":"73"},{"year":"2025","day":"10","date":"2025-11-26","product":"맥세이프 케이스","qty":"65"},{"year":"2025","day":"10","date":"2025-11-26","product":"DW 프로","qty":"39"},{"year":"2025","day":"10","date":"2025-11-26","product":"DW 플러스","qty":"22"},{"year":"2025","day":"10","date":"2025-11-26","product":"DW 베이직","qty":"7"},{"year":"2025","day":"10","date":"2025-11-26","product":"PH","qty":"119"},{"year":"2025","day":"10","date":"2025-11-26","product":"FT 2개입","qty":"3"},{"year":"2025","day":"10","date":"2025-11-26","product":"FT 4개입","qty":"46"},{"year":"2025","day":"11","date":"2025-11-27","product":"맥세이프 킥프레임","qty":"40"},{"year":"2025","day":"11","date":"2025-11-27","product":"맥세이프 케이스","qty":"59"},{"year":"2025","day":"11","date":"2025-11-27","product":"DW 프로","qty":"39"},{"year":"2025","day":"11","date":"2025-11-27","product":"DW 플러스","qty":"13"},{"year":"2025","day":"11","date":"2025-11-27","product":"DW 베이직","qty":"4"},{"year":"2025","day":"11","date":"2025-11-27","product":"PH","qty":"114"},{"year":"2025","day":"11","date":"2025-11-27","product":"FT 2개입","qty":"1"},{"year":"2025","day":"11","date":"2025-11-27","product":"FT 4개입","qty":"29"},{"year":"2025","day":"12","date":"2025-11-28","product":"맥세이프 킥프레임","qty":"47"},{"year":"2025","day":"12","date":"2025-11-28","product":"맥세이프 케이스","qty":"38"},{"year":"2025","day":"12","date":"2025-11-28","product":"DW 프로","qty":"43"},{"year":"2025","day":"12","date":"2025-11-28","product":"DW 플러스","qty":"21"},{"year":"2025","day":"12","date":"2025-11-28","product":"DW 베이직","qty":"6"},{"year":"2025","day":"12","date":"2025-11-28","product":"PH","qty":"125"},{"year":"2025","day":"12","date":"2025-11-28","product":"FT 2개입","qty":"6"},{"year":"2025","day":"12","date":"2025-11-28","product":"FT 4개입","qty":"21"},{"year":"2025","day":"13","date":"2025-11-29","product":"맥세이프 킥프레임","qty":"36"},{"year":"2025","day":"13","date":"2025-11-29","product":"맥세이프 케이스","qty":"51"},{"year":"2025","day":"13","date":"2025-11-29","product":"DW 프로","qty":"37"},{"year":"2025","day":"13","date":"2025-11-29","product":"DW 플러스","qty":"20"},{"year":"2025","day":"13","date":"2025-11-29","product":"DW 베이직","qty":"11"},{"year":"2025","day":"13","date":"2025-11-29","product":"PH","qty":"129"},{"year":"2025","day":"13","date":"2025-11-29","product":"FT 2개입","qty":"9"},{"year":"2025","day":"13","date":"2025-11-29","product":"FT 4개입","qty":"20"},{"year":"2025","day":"14","date":"2025-11-30","product":"맥세이프 킥프레임","qty":"52"},{"year":"2025","day":"14","date":"2025-11-30","product":"맥세이프 케이스","qty":"64"},{"year":"2025","day":"14","date":"2025-11-30","product":"DW 프로","qty":"89"},{"year":"2025","day":"14","date":"2025-11-30","product":"DW 플러스","qty":"25"},{"year":"2025","day":"14","date":"2025-11-30","product":"DW 베이직","qty":"7"},{"year":"2025","day":"14","date":"2025-11-30","product":"PH","qty":"173"},{"year":"2025","day":"14","date":"2025-11-30","product":"FT 2개입","qty":"7"},{"year":"2025","day":"14","date":"2025-11-30","product":"FT 4개입","qty":"41"},{"year":"2025","day":"15","date":"2025-12-01","product":"맥세이프 킥프레임","qty":"49"},{"year":"2025","day":"15","date":"2025-12-01","product":"맥세이프 케이스","qty":"59"},{"year":"2025","day":"15","date":"2025-12-01","product":"DW 프로","qty":"51"},{"year":"2025","day":"15","date":"2025-12-01","product":"DW 플러스","qty":"24"},{"year":"2025","day":"15","date":"2025-12-01","product":"DW 베이직","qty":"12"},{"year":"2025","day":"15","date":"2025-12-01","product":"PH","qty":"106"},{"year":"2025","day":"15","date":"2025-12-01","product":"FT 2개입","qty":"7"},{"year":"2025","day":"15","date":"2025-12-01","product":"FT 4개입","qty":"27"},{"year":"2026","day":"1","date":"2026-11-20","product":"맥세이프 킥프레임","qty":"44"},{"year":"2026","day":"1","date":"2026-11-20","product":"맥세이프 케이스","qty":"64"},{"year":"2026","day":"1","date":"2026-11-20","product":"DW 프로","qty":"31"},{"year":"2026","day":"1","date":"2026-11-20","product":"DW 플러스","qty":"0"},{"year":"2026","day":"1","date":"2026-11-20","product":"PH","qty":"51"},{"year":"2026","day":"1","date":"2026-11-20","product":"FT 2개입","qty":"44"},{"year":"2026","day":"1","date":"2026-11-20","product":"FT 4개입","qty":"2"},{"year":"2026","day":"2","date":"2026-11-21","product":"맥세이프 킥프레임","qty":"13"},{"year":"2026","day":"2","date":"2026-11-21","product":"맥세이프 케이스","qty":"12"},{"year":"2026","day":"2","date":"2026-11-21","product":"DW 프로","qty":"11"},{"year":"2026","day":"2","date":"2026-11-21","product":"DW 플러스","qty":"0"},{"year":"2026","day":"2","date":"2026-11-21","product":"PH","qty":"25"},{"year":"2026","day":"2","date":"2026-11-21","product":"FT 2개입","qty":"29"},{"year":"2026","day":"2","date":"2026-11-21","product":"FT 4개입","qty":"3"},{"year":"2026","day":"3","date":"2026-11-22","product":"맥세이프 킥프레임","qty":"17"},{"year":"2026","day":"3","date":"2026-11-22","product":"맥세이프 케이스","qty":"13"},{"year":"2026","day":"3","date":"2026-11-22","product":"DW 프로","qty":"18"},{"year":"2026","day":"3","date":"2026-11-22","product":"DW 플러스","qty":"0"},{"year":"2026","day":"3","date":"2026-11-22","product":"PH","qty":"18"},{"year":"2026","day":"3","date":"2026-11-22","product":"FT 2개입","qty":"31"},{"year":"2026","day":"3","date":"2026-11-22","product":"FT 4개입","qty":"2"}],"prices":[{"year":"2025","product":"맥세이프 킥프레임","list_price":"49500","sale_price":"29800"},{"year":"2025","product":"맥세이프 케이스","list_price":"39500","sale_price":"23900"},{"year":"2025","product":"DW 프로","list_price":"149000","sale_price":"74500"},{"year":"2025","product":"DW 플러스","list_price":"99000","sale_price":"49500"},{"year":"2025","product":"DW 베이직","list_price":"55000","sale_price":"27500"},{"year":"2025","product":"PH","list_price":"55000","sale_price":"27500"},{"year":"2025","product":"FT 2개입","list_price":"15800","sale_price":"7900"},{"year":"2025","product":"FT 4개입","list_price":"19000","sale_price":"9500"},{"year":"2026","product":"맥세이프 킥프레임","list_price":"49500","sale_price":"24750"},{"year":"2026","product":"맥세이프 케이스","list_price":"39500","sale_price":"19500"},{"year":"2026","product":"DW 프로","list_price":"149000","sale_price":"74500"},{"year":"2026","product":"PH","list_price":"68000","sale_price":"47600"},{"year":"2026","product":"FT 2개입","list_price":"25000","sale_price":"15000"},{"year":"2026","product":"FT 4개입","list_price":"40000","sale_price":"40000"}],"funnel_daily":[{"date":"2026-10-21","weekday":"수","period":"직전","channel":"자사몰","product":"킥프레임","impressions":"213","conversions":"11"},{"date":"2026-10-21","weekday":"수","period":"직전","channel":"자사몰","product":"PH","impressions":"355","conversions":"5"},{"date":"2026-10-21","weekday":"수","period":"직전","channel":"자사몰","product":"DW 프로","impressions":"58","conversions":"0"},{"date":"2026-10-21","weekday":"수","period":"직전","channel":"자사몰","product":"프레임팁","impressions":"732","conversions":"16"},{"date":"2026-10-22","weekday":"목","period":"직전","channel":"자사몰","product":"킥프레임","impressions":"131","conversions":"5"},{"date":"2026-10-22","weekday":"목","period":"직전","channel":"자사몰","product":"PH","impressions":"390","conversions":"4"},{"date":"2026-10-22","weekday":"목","period":"직전","channel":"자사몰","product":"DW 프로","impressions":"47","conversions":"2"},{"date":"2026-10-22","weekday":"목","period":"직전","channel":"자사몰","product":"프레임팁","impressions":"747","conversions":"13"},{"date":"2026-10-23","weekday":"금","period":"직전","channel":"자사몰","product":"킥프레임","impressions":"127","conversions":"5"},{"date":"2026-10-23","weekday":"금","period":"직전","channel":"자사몰","product":"PH","impressions":"300","conversions":"6"},{"date":"2026-10-23","weekday":"금","period":"직전","channel":"자사몰","product":"DW 프로","impressions":"60","conversions":"0"},{"date":"2026-10-23","weekday":"금","period":"직전","channel":"자사몰","product":"프레임팁","impressions":"825","conversions":"11"},{"date":"2026-10-24","weekday":"토","period":"직전","channel":"자사몰","product":"킥프레임","impressions":"161","conversions":"8"},{"date":"2026-10-24","weekday":"토","period":"직전","channel":"자사몰","product":"PH","impressions":"371","conversions":"4"},{"date":"2026-10-24","weekday":"토","period":"직전","channel":"자사몰","product":"DW 프로","impressions":"35","conversions":"0"},{"date":"2026-10-24","weekday":"토","period":"직전","channel":"자사몰","product":"프레임팁","impressions":"1010","conversions":"22"},{"date":"2026-10-25","weekday":"일","period":"직전","channel":"자사몰","product":"킥프레임","impressions":"159","conversions":"6"},{"date":"2026-10-25","weekday":"일","period":"직전","channel":"자사몰","product":"PH","impressions":"294","conversions":"3"},{"date":"2026-10-25","weekday":"일","period":"직전","channel":"자사몰","product":"DW 프로","impressions":"28","conversions":"0"},{"date":"2026-10-25","weekday":"일","period":"직전","channel":"자사몰","product":"프레임팁","impressions":"789","conversions":"16"},{"date":"2026-10-26","weekday":"월","period":"직전","channel":"자사몰","product":"킥프레임","impressions":"138","conversions":"3"},{"date":"2026-10-26","weekday":"월","period":"직전","channel":"자사몰","product":"PH","impressions":"332","conversions":"7"},{"date":"2026-10-26","weekday":"월","period":"직전","channel":"자사몰","product":"DW 프로","impressions":"47","conversions":"0"},{"date":"2026-10-26","weekday":"월","period":"직전","channel":"자사몰","product":"프레임팁","impressions":"720","conversions":"15"},{"date":"2026-10-27","weekday":"화","period":"직전","channel":"자사몰","product":"킥프레임","impressions":"139","conversions":"5"},{"date":"2026-10-27","weekday":"화","period":"직전","channel":"자사몰","product":"PH","impressions":"373","conversions":"4"},{"date":"2026-10-27","weekday":"화","period":"직전","channel":"자사몰","product":"DW 프로","impressions":"45","conversions":"1"},{"date":"2026-10-27","weekday":"화","period":"직전","channel":"자사몰","product":"프레임팁","impressions":"937","conversions":"21"},{"date":"2026-10-28","weekday":"수","period":"직전","channel":"자사몰","product":"킥프레임","impressions":"138","conversions":"6"},{"date":"2026-10-28","weekday":"수","period":"직전","channel":"자사몰","product":"PH","impressions":"324","conversions":"8"},{"date":"2026-10-28","weekday":"수","period":"직전","channel":"자사몰","product":"DW 프로","impressions":"60","conversions":"0"},{"date":"2026-10-28","weekday":"수","period":"직전","channel":"자사몰","product":"프레임팁","impressions":"953","conversions":"16"},{"date":"2026-10-29","weekday":"목","period":"직전","channel":"자사몰","product":"킥프레임","impressions":"115","conversions":"3"},{"date":"2026-10-29","weekday":"목","period":"직전","channel":"자사몰","product":"PH","impressions":"305","conversions":"1"},{"date":"2026-10-29","weekday":"목","period":"직전","channel":"자사몰","product":"DW 프로","impressions":"40","conversions":"1"},{"date":"2026-10-29","weekday":"목","period":"직전","channel":"자사몰","product":"프레임팁","impressions":"1139","conversions":"21"},{"date":"2026-10-30","weekday":"금","period":"직전","channel":"자사몰","product":"킥프레임","impressions":"123","conversions":"4"},{"date":"2026-10-30","weekday":"금","period":"직전","channel":"자사몰","product":"PH","impressions":"293","conversions":"5"},{"date":"2026-10-30","weekday":"금","period":"직전","channel":"자사몰","product":"DW 프로","impressions":"33","conversions":"1"},{"date":"2026-10-30","weekday":"금","period":"직전","channel":"자사몰","product":"프레임팁","impressions":"1457","conversions":"23"},{"date":"2026-10-31","weekday":"토","period":"직전","channel":"자사몰","product":"킥프레임","impressions":"128","conversions":"3"},{"date":"2026-10-31","weekday":"토","period":"직전","channel":"자사몰","product":"PH","impressions":"270","conversions":"3"},{"date":"2026-10-31","weekday":"토","period":"직전","channel":"자사몰","product":"DW 프로","impressions":"41","conversions":"0"},{"date":"2026-10-31","weekday":"토","period":"직전","channel":"자사몰","product":"프레임팁","impressions":"1240","conversions":"25"},{"date":"2026-11-01","weekday":"일","period":"직전","channel":"자사몰","product":"킥프레임","impressions":"162","conversions":"11"},{"date":"2026-11-01","weekday":"일","period":"직전","channel":"자사몰","product":"PH","impressions":"307","conversions":"3"},{"date":"2026-11-01","weekday":"일","period":"직전","channel":"자사몰","product":"DW 프로","impressions":"25","conversions":"0"},{"date":"2026-11-01","weekday":"일","period":"직전","channel":"자사몰","product":"프레임팁","impressions":"909","conversions":"21"},{"date":"2026-11-02","weekday":"월","period":"직전","channel":"자사몰","product":"킥프레임","impressions":"151","conversions":"5"},{"date":"2026-11-02","weekday":"월","period":"직전","channel":"자사몰","product":"PH","impressions":"338","conversions":"1"},{"date":"2026-11-02","weekday":"월","period":"직전","channel":"자사몰","product":"DW 프로","impressions":"39","conversions":"0"},{"date":"2026-11-02","weekday":"월","period":"직전","channel":"자사몰","product":"프레임팁","impressions":"916","conversions":"12"},{"date":"2026-11-03","weekday":"화","period":"직전","channel":"자사몰","product":"킥프레임","impressions":"136","conversions":"5"},{"date":"2026-11-03","weekday":"화","period":"직전","channel":"자사몰","product":"PH","impressions":"393","conversions":"10"},{"date":"2026-11-03","weekday":"화","period":"직전","channel":"자사몰","product":"DW 프로","impressions":"45","conversions":"0"},{"date":"2026-11-03","weekday":"화","period":"직전","channel":"자사몰","product":"프레임팁","impressions":"1194","conversions":"30"},{"date":"2026-11-04","weekday":"수","period":"직전","channel":"자사몰","product":"킥프레임","impressions":"153","conversions":"11"},{"date":"2026-11-04","weekday":"수","period":"직전","channel":"자사몰","product":"PH","impressions":"428","conversions":"11"},{"date":"2026-11-04","weekday":"수","period":"직전","channel":"자사몰","product":"DW 프로","impressions":"43","conversions":"2"},{"date":"2026-11-04","weekday":"수","period":"직전","channel":"자사몰","product":"프레임팁","impressions":"1263","conversions":"28"},{"date":"2026-11-05","weekday":"목","period":"직전","channel":"자사몰","product":"킥프레임","impressions":"138","conversions":"5"},{"date":"2026-11-05","weekday":"목","period":"직전","channel":"자사몰","product":"PH","impressions":"455","conversions":"6"},{"date":"2026-11-05","weekday":"목","period":"직전","channel":"자사몰","product":"DW 프로","impressions":"40","conversions":"0"},{"date":"2026-11-05","weekday":"목","period":"직전","channel":"자사몰","product":"프레임팁","impressions":"937","conversions":"19"},{"date":"2026-11-06","weekday":"금","period":"직전","channel":"자사몰","product":"킥프레임","impressions":"143","conversions":"8"},{"date":"2026-11-06","weekday":"금","period":"직전","channel":"자사몰","product":"PH","impressions":"403","conversions":"4"},{"date":"2026-11-06","weekday":"금","period":"직전","channel":"자사몰","product":"DW 프로","impressions":"59","conversions":"0"},{"date":"2026-11-06","weekday":"금","period":"직전","channel":"자사몰","product":"프레임팁","impressions":"834","conversions":"11"},{"date":"2026-11-07","weekday":"토","period":"직전","channel":"자사몰","product":"킥프레임","impressions":"119","conversions":"5"},{"date":"2026-11-07","weekday":"토","period":"직전","channel":"자사몰","product":"PH","impressions":"431","conversions":"9"},{"date":"2026-11-07","weekday":"토","period":"직전","channel":"자사몰","product":"DW 프로","impressions":"48","conversions":"2"},{"date":"2026-11-07","weekday":"토","period":"직전","channel":"자사몰","product":"프레임팁","impressions":"842","conversions":"29"},{"date":"2026-11-08","weekday":"일","period":"직전","channel":"자사몰","product":"킥프레임","impressions":"150","conversions":"4"},{"date":"2026-11-08","weekday":"일","period":"직전","channel":"자사몰","product":"PH","impressions":"446","conversions":"5"},{"date":"2026-11-08","weekday":"일","period":"직전","channel":"자사몰","product":"DW 프로","impressions":"52","conversions":"1"},{"date":"2026-11-08","weekday":"일","period":"직전","channel":"자사몰","product":"프레임팁","impressions":"911","conversions":"13"},{"date":"2026-11-09","weekday":"월","period":"직전","channel":"자사몰","product":"킥프레임","impressions":"181","conversions":"5"},{"date":"2026-11-09","weekday":"월","period":"직전","channel":"자사몰","product":"PH","impressions":"399","conversions":"1"},{"date":"2026-11-09","weekday":"월","period":"직전","channel":"자사몰","product":"DW 프로","impressions":"56","conversions":"0"},{"date":"2026-11-09","weekday":"월","period":"직전","channel":"자사몰","product":"프레임팁","impressions":"791","conversions":"14"},{"date":"2026-11-10","weekday":"화","period":"직전","channel":"자사몰","product":"킥프레임","impressions":"163","conversions":"6"},{"date":"2026-11-10","weekday":"화","period":"직전","channel":"자사몰","product":"PH","impressions":"439","conversions":"7"},{"date":"2026-11-10","weekday":"화","period":"직전","channel":"자사몰","product":"DW 프로","impressions":"62","conversions":"0"},{"date":"2026-11-10","weekday":"화","period":"직전","channel":"자사몰","product":"프레임팁","impressions":"734","conversions":"28"},{"date":"2026-11-11","weekday":"수","period":"직전","channel":"자사몰","product":"킥프레임","impressions":"131","conversions":"5"},{"date":"2026-11-11","weekday":"수","period":"직전","channel":"자사몰","product":"PH","impressions":"444","conversions":"10"},{"date":"2026-11-11","weekday":"수","period":"직전","channel":"자사몰","product":"DW 프로","impressions":"57","conversions":"0"},{"date":"2026-11-11","weekday":"수","period":"직전","channel":"자사몰","product":"프레임팁","impressions":"638","conversions":"16"},{"date":"2026-11-12","weekday":"목","period":"직전","channel":"자사몰","product":"킥프레임","impressions":"100","conversions":"5"},{"date":"2026-11-12","weekday":"목","period":"직전","channel":"자사몰","product":"PH","impressions":"453","conversions":"5"},{"date":"2026-11-12","weekday":"목","period":"직전","channel":"자사몰","product":"DW 프로","impressions":"96","conversions":"0"},{"date":"2026-11-12","weekday":"목","period":"직전","channel":"자사몰","product":"프레임팁","impressions":"708","conversions":"15"},{"date":"2026-11-13","weekday":"금","period":"직전","channel":"자사몰","product":"킥프레임","impressions":"142","conversions":"4"},{"date":"2026-11-13","weekday":"금","period":"직전","channel":"자사몰","product":"PH","impressions":"487","conversions":"4"},{"date":"2026-11-13","weekday":"금","period":"직전","channel":"자사몰","product":"DW 프로","impressions":"108","conversions":"0"},{"date":"2026-11-13","weekday":"금","period":"직전","channel":"자사몰","product":"프레임팁","impressions":"606","conversions":"18"},{"date":"2026-11-14","weekday":"토","period":"직전","channel":"자사몰","product":"킥프레임","impressions":"151","conversions":"5"},{"date":"2026-11-14","weekday":"토","period":"직전","channel":"자사몰","product":"PH","impressions":"612","conversions":"10"},{"date":"2026-11-14","weekday":"토","period":"직전","channel":"자사몰","product":"DW 프로","impressions":"74","conversions":"0"},{"date":"2026-11-14","weekday":"토","period":"직전","channel":"자사몰","product":"프레임팁","impressions":"719","conversions":"8"},{"date":"2026-11-15","weekday":"일","period":"직전","channel":"자사몰","product":"킥프레임","impressions":"113","conversions":"7"},{"date":"2026-11-15","weekday":"일","period":"직전","channel":"자사몰","product":"PH","impressions":"430","conversions":"5"},{"date":"2026-11-15","weekday":"일","period":"직전","channel":"자사몰","product":"DW 프로","impressions":"70","conversions":"0"},{"date":"2026-11-15","weekday":"일","period":"직전","channel":"자사몰","product":"프레임팁","impressions":"567","conversions":"5"},{"date":"2026-11-16","weekday":"월","period":"직전","channel":"자사몰","product":"킥프레임","impressions":"123","conversions":"6"},{"date":"2026-11-16","weekday":"월","period":"직전","channel":"자사몰","product":"PH","impressions":"509","conversions":"2"},{"date":"2026-11-16","weekday":"월","period":"직전","channel":"자사몰","product":"DW 프로","impressions":"91","conversions":"0"},{"date":"2026-11-16","weekday":"월","period":"직전","channel":"자사몰","product":"프레임팁","impressions":"463","conversions":"8"},{"date":"2026-11-17","weekday":"화","period":"직전","channel":"자사몰","product":"킥프레임","impressions":"95","conversions":"2"},{"date":"2026-11-17","weekday":"화","period":"직전","channel":"자사몰","product":"PH","impressions":"387","conversions":"5"},{"date":"2026-11-17","weekday":"화","period":"직전","channel":"자사몰","product":"DW 프로","impressions":"83","conversions":"1"},{"date":"2026-11-17","weekday":"화","period":"직전","channel":"자사몰","product":"프레임팁","impressions":"273","conversions":"4"},{"date":"2026-11-18","weekday":"수","period":"직전","channel":"자사몰","product":"킥프레임","impressions":"200","conversions":"7"},{"date":"2026-11-18","weekday":"수","period":"직전","channel":"자사몰","product":"PH","impressions":"431","conversions":"4"},{"date":"2026-11-18","weekday":"수","period":"직전","channel":"자사몰","product":"DW 프로","impressions":"90","conversions":"0"},{"date":"2026-11-18","weekday":"수","period":"직전","channel":"자사몰","product":"프레임팁","impressions":"327","conversions":"10"},{"date":"2026-11-19","weekday":"목","period":"직전","channel":"자사몰","product":"킥프레임","impressions":"130","conversions":"2"},{"date":"2026-11-19","weekday":"목","period":"직전","channel":"자사몰","product":"PH","impressions":"477","conversions":"5"},{"date":"2026-11-19","weekday":"목","period":"직전","channel":"자사몰","product":"DW 프로","impressions":"86","conversions":"2"},{"date":"2026-11-19","weekday":"목","period":"직전","channel":"자사몰","product":"프레임팁","impressions":"287","conversions":"8"},{"date":"2026-11-20","weekday":"금","period":"블프","channel":"자사몰","product":"킥프레임","impressions":"400","conversions":"19"},{"date":"2026-11-20","weekday":"금","period":"블프","channel":"자사몰","product":"PH","impressions":"574","conversions":"10"},{"date":"2026-11-20","weekday":"금","period":"블프","channel":"자사몰","product":"DW 프로","impressions":"361","conversions":"6"},{"date":"2026-11-20","weekday":"금","period":"블프","channel":"자사몰","product":"프레임팁","impressions":"599","conversions":"20"},{"date":"2026-11-21","weekday":"토","period":"블프","channel":"자사몰","product":"킥프레임","impressions":"171","conversions":"4"},{"date":"2026-11-21","weekday":"토","period":"블프","channel":"자사몰","product":"PH","impressions":"286","conversions":"6"},{"date":"2026-11-21","weekday":"토","period":"블프","channel":"자사몰","product":"DW 프로","impressions":"321","conversions":"4"},{"date":"2026-11-21","weekday":"토","period":"블프","channel":"자사몰","product":"프레임팁","impressions":"552","conversions":"19"},{"date":"2026-11-22","weekday":"일","period":"블프","channel":"자사몰","product":"킥프레임","impressions":"86","conversions":"6"},{"date":"2026-11-22","weekday":"일","period":"블프","channel":"자사몰","product":"PH","impressions":"316","conversions":"2"},{"date":"2026-11-22","weekday":"일","period":"블프","channel":"자사몰","product":"DW 프로","impressions":"366","conversions":"4"},{"date":"2026-11-22","weekday":"일","period":"블프","channel":"자사몰","product":"프레임팁","impressions":"591","conversions":"23"},{"date":"2026-10-21","weekday":"수","period":"직전","channel":"스마트스토어","product":"킥프레임","impressions":"175","conversions":"14"},{"date":"2026-10-21","weekday":"수","period":"직전","channel":"스마트스토어","product":"PH","impressions":"283","conversions":"18"},{"date":"2026-10-21","weekday":"수","period":"직전","channel":"스마트스토어","product":"DW 프로","impressions":"121","conversions":"2"},{"date":"2026-10-21","weekday":"수","period":"직전","channel":"스마트스토어","product":"프레임팁","impressions":"61","conversions":"0"},{"date":"2026-10-22","weekday":"목","period":"직전","channel":"스마트스토어","product":"킥프레임","impressions":"201","conversions":"11"},{"date":"2026-10-22","weekday":"목","period":"직전","channel":"스마트스토어","product":"PH","impressions":"254","conversions":"39"},{"date":"2026-10-22","weekday":"목","period":"직전","channel":"스마트스토어","product":"DW 프로","impressions":"183","conversions":"7"},{"date":"2026-10-22","weekday":"목","period":"직전","channel":"스마트스토어","product":"프레임팁","impressions":"56","conversions":"4"},{"date":"2026-10-23","weekday":"금","period":"직전","channel":"스마트스토어","product":"킥프레임","impressions":"141","conversions":"6"},{"date":"2026-10-23","weekday":"금","period":"직전","channel":"스마트스토어","product":"PH","impressions":"206","conversions":"16"},{"date":"2026-10-23","weekday":"금","period":"직전","channel":"스마트스토어","product":"DW 프로","impressions":"190","conversions":"13"},{"date":"2026-10-23","weekday":"금","period":"직전","channel":"스마트스토어","product":"프레임팁","impressions":"70","conversions":"3"},{"date":"2026-10-24","weekday":"토","period":"직전","channel":"스마트스토어","product":"킥프레임","impressions":"143","conversions":"8"},{"date":"2026-10-24","weekday":"토","period":"직전","channel":"스마트스토어","product":"PH","impressions":"159","conversions":"9"},{"date":"2026-10-24","weekday":"토","period":"직전","channel":"스마트스토어","product":"DW 프로","impressions":"139","conversions":"1"},{"date":"2026-10-24","weekday":"토","period":"직전","channel":"스마트스토어","product":"프레임팁","impressions":"56","conversions":"2"},{"date":"2026-10-25","weekday":"일","period":"직전","channel":"스마트스토어","product":"킥프레임","impressions":"204","conversions":"8"},{"date":"2026-10-25","weekday":"일","period":"직전","channel":"스마트스토어","product":"PH","impressions":"297","conversions":"11"},{"date":"2026-10-25","weekday":"일","period":"직전","channel":"스마트스토어","product":"DW 프로","impressions":"177","conversions":"3"},{"date":"2026-10-25","weekday":"일","period":"직전","channel":"스마트스토어","product":"프레임팁","impressions":"55","conversions":"3"},{"date":"2026-10-26","weekday":"월","period":"직전","channel":"스마트스토어","product":"킥프레임","impressions":"196","conversions":"11"},{"date":"2026-10-26","weekday":"월","period":"직전","channel":"스마트스토어","product":"PH","impressions":"277","conversions":"12"},{"date":"2026-10-26","weekday":"월","period":"직전","channel":"스마트스토어","product":"DW 프로","impressions":"185","conversions":"3"},{"date":"2026-10-26","weekday":"월","period":"직전","channel":"스마트스토어","product":"프레임팁","impressions":"72","conversions":"5"},{"date":"2026-10-27","weekday":"화","period":"직전","channel":"스마트스토어","product":"킥프레임","impressions":"213","conversions":"12"},{"date":"2026-10-27","weekday":"화","period":"직전","channel":"스마트스토어","product":"PH","impressions":"274","conversions":"21"},{"date":"2026-10-27","weekday":"화","period":"직전","channel":"스마트스토어","product":"DW 프로","impressions":"171","conversions":"5"},{"date":"2026-10-27","weekday":"화","period":"직전","channel":"스마트스토어","product":"프레임팁","impressions":"113","conversions":"6"},{"date":"2026-10-28","weekday":"수","period":"직전","channel":"스마트스토어","product":"킥프레임","impressions":"114","conversions":"10"},{"date":"2026-10-28","weekday":"수","period":"직전","channel":"스마트스토어","product":"PH","impressions":"176","conversions":"8"},{"date":"2026-10-28","weekday":"수","period":"직전","channel":"스마트스토어","product":"DW 프로","impressions":"198","conversions":"2"},{"date":"2026-10-28","weekday":"수","period":"직전","channel":"스마트스토어","product":"프레임팁","impressions":"105","conversions":"3"},{"date":"2026-10-29","weekday":"목","period":"직전","channel":"스마트스토어","product":"킥프레임","impressions":"95","conversions":"4"},{"date":"2026-10-29","weekday":"목","period":"직전","channel":"스마트스토어","product":"PH","impressions":"219","conversions":"13"},{"date":"2026-10-29","weekday":"목","period":"직전","channel":"스마트스토어","product":"DW 프로","impressions":"176","conversions":"6"},{"date":"2026-10-29","weekday":"목","period":"직전","channel":"스마트스토어","product":"프레임팁","impressions":"140","conversions":"6"},{"date":"2026-10-30","weekday":"금","period":"직전","channel":"스마트스토어","product":"킥프레임","impressions":"91","conversions":"3"},{"date":"2026-10-30","weekday":"금","period":"직전","channel":"스마트스토어","product":"PH","impressions":"202","conversions":"16"},{"date":"2026-10-30","weekday":"금","period":"직전","channel":"스마트스토어","product":"DW 프로","impressions":"138","conversions":"0"},{"date":"2026-10-30","weekday":"금","period":"직전","channel":"스마트스토어","product":"프레임팁","impressions":"110","conversions":"6"},{"date":"2026-10-31","weekday":"토","period":"직전","channel":"스마트스토어","product":"킥프레임","impressions":"119","conversions":"5"},{"date":"2026-10-31","weekday":"토","period":"직전","channel":"스마트스토어","product":"PH","impressions":"135","conversions":"10"},{"date":"2026-10-31","weekday":"토","period":"직전","channel":"스마트스토어","product":"DW 프로","impressions":"111","conversions":"3"},{"date":"2026-10-31","weekday":"토","period":"직전","channel":"스마트스토어","product":"프레임팁","impressions":"164","conversions":"5"},{"date":"2026-11-01","weekday":"일","period":"직전","channel":"스마트스토어","product":"킥프레임","impressions":"149","conversions":"7"},{"date":"2026-11-01","weekday":"일","period":"직전","channel":"스마트스토어","product":"PH","impressions":"157","conversions":"11"},{"date":"2026-11-01","weekday":"일","period":"직전","channel":"스마트스토어","product":"DW 프로","impressions":"128","conversions":"2"},{"date":"2026-11-01","weekday":"일","period":"직전","channel":"스마트스토어","product":"프레임팁","impressions":"133","conversions":"11"},{"date":"2026-11-02","weekday":"월","period":"직전","channel":"스마트스토어","product":"킥프레임","impressions":"129","conversions":"17"},{"date":"2026-11-02","weekday":"월","period":"직전","channel":"스마트스토어","product":"PH","impressions":"257","conversions":"14"},{"date":"2026-11-02","weekday":"월","period":"직전","channel":"스마트스토어","product":"DW 프로","impressions":"147","conversions":"2"},{"date":"2026-11-02","weekday":"월","period":"직전","channel":"스마트스토어","product":"프레임팁","impressions":"121","conversions":"7"},{"date":"2026-11-03","weekday":"화","period":"직전","channel":"스마트스토어","product":"킥프레임","impressions":"136","conversions":"5"},{"date":"2026-11-03","weekday":"화","period":"직전","channel":"스마트스토어","product":"PH","impressions":"253","conversions":"19"},{"date":"2026-11-03","weekday":"화","period":"직전","channel":"스마트스토어","product":"DW 프로","impressions":"156","conversions":"3"},{"date":"2026-11-03","weekday":"화","period":"직전","channel":"스마트스토어","product":"프레임팁","impressions":"131","conversions":"6"},{"date":"2026-11-04","weekday":"수","period":"직전","channel":"스마트스토어","product":"킥프레임","impressions":"149","conversions":"5"},{"date":"2026-11-04","weekday":"수","period":"직전","channel":"스마트스토어","product":"PH","impressions":"230","conversions":"14"},{"date":"2026-11-04","weekday":"수","period":"직전","channel":"스마트스토어","product":"DW 프로","impressions":"118","conversions":"1"},{"date":"2026-11-04","weekday":"수","period":"직전","channel":"스마트스토어","product":"프레임팁","impressions":"153","conversions":"6"},{"date":"2026-11-05","weekday":"목","period":"직전","channel":"스마트스토어","product":"킥프레임","impressions":"99","conversions":"6"},{"date":"2026-11-05","weekday":"목","period":"직전","channel":"스마트스토어","product":"PH","impressions":"276","conversions":"17"},{"date":"2026-11-05","weekday":"목","period":"직전","channel":"스마트스토어","product":"DW 프로","impressions":"147","conversions":"2"},{"date":"2026-11-05","weekday":"목","period":"직전","channel":"스마트스토어","product":"프레임팁","impressions":"82","conversions":"10"},{"date":"2026-11-06","weekday":"금","period":"직전","channel":"스마트스토어","product":"킥프레임","impressions":"99","conversions":"6"},{"date":"2026-11-06","weekday":"금","period":"직전","channel":"스마트스토어","product":"PH","impressions":"232","conversions":"16"},{"date":"2026-11-06","weekday":"금","period":"직전","channel":"스마트스토어","product":"DW 프로","impressions":"124","conversions":"2"},{"date":"2026-11-06","weekday":"금","period":"직전","channel":"스마트스토어","product":"프레임팁","impressions":"87","conversions":"2"},{"date":"2026-11-07","weekday":"토","period":"직전","channel":"스마트스토어","product":"킥프레임","impressions":"106","conversions":"4"},{"date":"2026-11-07","weekday":"토","period":"직전","channel":"스마트스토어","product":"PH","impressions":"150","conversions":"9"},{"date":"2026-11-07","weekday":"토","period":"직전","channel":"스마트스토어","product":"DW 프로","impressions":"129","conversions":"2"},{"date":"2026-11-07","weekday":"토","period":"직전","channel":"스마트스토어","product":"프레임팁","impressions":"64","conversions":"5"},{"date":"2026-11-08","weekday":"일","period":"직전","channel":"스마트스토어","product":"킥프레임","impressions":"127","conversions":"4"},{"date":"2026-11-08","weekday":"일","period":"직전","channel":"스마트스토어","product":"PH","impressions":"231","conversions":"13"},{"date":"2026-11-08","weekday":"일","period":"직전","channel":"스마트스토어","product":"DW 프로","impressions":"124","conversions":"0"},{"date":"2026-11-08","weekday":"일","period":"직전","channel":"스마트스토어","product":"프레임팁","impressions":"75","conversions":"5"},{"date":"2026-11-09","weekday":"월","period":"직전","channel":"스마트스토어","product":"킥프레임","impressions":"128","conversions":"8"},{"date":"2026-11-09","weekday":"월","period":"직전","channel":"스마트스토어","product":"PH","impressions":"237","conversions":"17"},{"date":"2026-11-09","weekday":"월","period":"직전","channel":"스마트스토어","product":"DW 프로","impressions":"146","conversions":"2"},{"date":"2026-11-09","weekday":"월","period":"직전","channel":"스마트스토어","product":"프레임팁","impressions":"101","conversions":"9"},{"date":"2026-11-10","weekday":"화","period":"직전","channel":"스마트스토어","product":"킥프레임","impressions":"104","conversions":"3"},{"date":"2026-11-10","weekday":"화","period":"직전","channel":"스마트스토어","product":"PH","impressions":"221","conversions":"15"},{"date":"2026-11-10","weekday":"화","period":"직전","channel":"스마트스토어","product":"DW 프로","impressions":"162","conversions":"2"},{"date":"2026-11-10","weekday":"화","period":"직전","channel":"스마트스토어","product":"프레임팁","impressions":"110","conversions":"5"},{"date":"2026-11-11","weekday":"수","period":"직전","channel":"스마트스토어","product":"킥프레임","impressions":"128","conversions":"14"},{"date":"2026-11-11","weekday":"수","period":"직전","channel":"스마트스토어","product":"PH","impressions":"272","conversions":"11"},{"date":"2026-11-11","weekday":"수","period":"직전","channel":"스마트스토어","product":"DW 프로","impressions":"165","conversions":"5"},{"date":"2026-11-11","weekday":"수","period":"직전","channel":"스마트스토어","product":"프레임팁","impressions":"72","conversions":"6"},{"date":"2026-11-12","weekday":"목","period":"직전","channel":"스마트스토어","product":"킥프레임","impressions":"101","conversions":"4"},{"date":"2026-11-12","weekday":"목","period":"직전","channel":"스마트스토어","product":"PH","impressions":"276","conversions":"20"},{"date":"2026-11-12","weekday":"목","period":"직전","channel":"스마트스토어","product":"DW 프로","impressions":"156","conversions":"2"},{"date":"2026-11-12","weekday":"목","period":"직전","channel":"스마트스토어","product":"프레임팁","impressions":"107","conversions":"7"},{"date":"2026-11-13","weekday":"금","period":"직전","channel":"스마트스토어","product":"킥프레임","impressions":"93","conversions":"7"},{"date":"2026-11-13","weekday":"금","period":"직전","channel":"스마트스토어","product":"PH","impressions":"257","conversions":"9"},{"date":"2026-11-13","weekday":"금","period":"직전","channel":"스마트스토어","product":"DW 프로","impressions":"175","conversions":"1"},{"date":"2026-11-13","weekday":"금","period":"직전","channel":"스마트스토어","product":"프레임팁","impressions":"91","conversions":"3"},{"date":"2026-11-14","weekday":"토","period":"직전","channel":"스마트스토어","product":"킥프레임","impressions":"114","conversions":"3"},{"date":"2026-11-14","weekday":"토","period":"직전","channel":"스마트스토어","product":"PH","impressions":"148","conversions":"5"},{"date":"2026-11-14","weekday":"토","period":"직전","channel":"스마트스토어","product":"DW 프로","impressions":"140","conversions":"2"},{"date":"2026-11-14","weekday":"토","period":"직전","channel":"스마트스토어","product":"프레임팁","impressions":"74","conversions":"7"},{"date":"2026-11-15","weekday":"일","period":"직전","channel":"스마트스토어","product":"킥프레임","impressions":"126","conversions":"6"},{"date":"2026-11-15","weekday":"일","period":"직전","channel":"스마트스토어","product":"PH","impressions":"211","conversions":"11"},{"date":"2026-11-15","weekday":"일","period":"직전","channel":"스마트스토어","product":"DW 프로","impressions":"136","conversions":"1"},{"date":"2026-11-15","weekday":"일","period":"직전","channel":"스마트스토어","product":"프레임팁","impressions":"74","conversions":"8"},{"date":"2026-11-16","weekday":"월","period":"직전","channel":"스마트스토어","product":"킥프레임","impressions":"121","conversions":"8"},{"date":"2026-11-16","weekday":"월","period":"직전","channel":"스마트스토어","product":"PH","impressions":"283","conversions":"23"},{"date":"2026-11-16","weekday":"월","period":"직전","channel":"스마트스토어","product":"DW 프로","impressions":"191","conversions":"3"},{"date":"2026-11-16","weekday":"월","period":"직전","channel":"스마트스토어","product":"프레임팁","impressions":"97","conversions":"8"},{"date":"2026-11-17","weekday":"화","period":"직전","channel":"스마트스토어","product":"킥프레임","impressions":"126","conversions":"6"},{"date":"2026-11-17","weekday":"화","period":"직전","channel":"스마트스토어","product":"PH","impressions":"249","conversions":"15"},{"date":"2026-11-17","weekday":"화","period":"직전","channel":"스마트스토어","product":"DW 프로","impressions":"192","conversions":"3"},{"date":"2026-11-17","weekday":"화","period":"직전","channel":"스마트스토어","product":"프레임팁","impressions":"115","conversions":"6"},{"date":"2026-11-18","weekday":"수","period":"직전","channel":"스마트스토어","product":"킥프레임","impressions":"99","conversions":"3"},{"date":"2026-11-18","weekday":"수","period":"직전","channel":"스마트스토어","product":"PH","impressions":"222","conversions":"17"},{"date":"2026-11-18","weekday":"수","period":"직전","channel":"스마트스토어","product":"DW 프로","impressions":"199","conversions":"1"},{"date":"2026-11-18","weekday":"수","period":"직전","channel":"스마트스토어","product":"프레임팁","impressions":"76","conversions":"5"},{"date":"2026-11-19","weekday":"목","period":"직전","channel":"스마트스토어","product":"킥프레임","impressions":"107","conversions":"7"},{"date":"2026-11-19","weekday":"목","period":"직전","channel":"스마트스토어","product":"PH","impressions":"229","conversions":"17"},{"date":"2026-11-19","weekday":"목","period":"직전","channel":"스마트스토어","product":"DW 프로","impressions":"184","conversions":"3"},{"date":"2026-11-19","weekday":"목","period":"직전","channel":"스마트스토어","product":"프레임팁","impressions":"68","conversions":"11"},{"date":"2026-11-20","weekday":"금","period":"블프","channel":"스마트스토어","product":"킥프레임","impressions":"504","conversions":"18"},{"date":"2026-11-20","weekday":"금","period":"블프","channel":"스마트스토어","product":"PH","impressions":"569","conversions":"39"},{"date":"2026-11-20","weekday":"금","period":"블프","channel":"스마트스토어","product":"DW 프로","impressions":"539","conversions":"22"},{"date":"2026-11-20","weekday":"금","period":"블프","channel":"스마트스토어","product":"프레임팁","impressions":"268","conversions":"10"},{"date":"2026-11-21","weekday":"토","period":"블프","channel":"스마트스토어","product":"킥프레임","impressions":"140","conversions":"8"},{"date":"2026-11-21","weekday":"토","period":"블프","channel":"스마트스토어","product":"PH","impressions":"227","conversions":"22"},{"date":"2026-11-21","weekday":"토","period":"블프","channel":"스마트스토어","product":"DW 프로","impressions":"244","conversions":"5"},{"date":"2026-11-21","weekday":"토","period":"블프","channel":"스마트스토어","product":"프레임팁","impressions":"154","conversions":"10"},{"date":"2026-11-22","weekday":"일","period":"블프","channel":"스마트스토어","product":"킥프레임","impressions":"129","conversions":"9"},{"date":"2026-11-22","weekday":"일","period":"블프","channel":"스마트스토어","product":"PH","impressions":"230","conversions":"17"},{"date":"2026-11-22","weekday":"일","period":"블프","channel":"스마트스토어","product":"DW 프로","impressions":"281","conversions":"14"},{"date":"2026-11-22","weekday":"일","period":"블프","channel":"스마트스토어","product":"프레임팁","impressions":"70","conversions":"10"}],"inventory":[{"option":"맥세이프 킥프레임","product":"맥세이프 킥프레임","stock":"616","stock_date":"2026-11-20","incoming":null,"incoming_date":null,"incoming_note":null},{"option":"PH 실버","product":"PH","stock":"7","stock_date":"2026-11-20","incoming":"1290","incoming_date":"2026-11-23","incoming_note":"11/23 또는 11/24 입고 예정"},{"option":"PH 블랙","product":"PH","stock":"181","stock_date":"2026-11-20","incoming":null,"incoming_date":null,"incoming_note":null},{"option":"DW 프로 블랙","product":"DW 프로","stock":"142","stock_date":"2026-11-20","incoming":null,"incoming_date":null,"incoming_note":null},{"option":"프레임팁 라이트","product":"FT 2개입","stock":"453","stock_date":"2026-11-20","incoming":null,"incoming_date":null,"incoming_note":null},{"option":"프레임팁 밸런스드","product":"FT 2개입","stock":"235","stock_date":"2026-11-20","incoming":null,"incoming_date":null,"incoming_note":null},{"option":"프레임팁 펌","product":"FT 2개입","stock":"390","stock_date":"2026-11-20","incoming":null,"incoming_date":null,"incoming_note":null},{"option":"프레임팁 솔리드","product":"FT 2개입","stock":"410","stock_date":"2026-11-20","incoming":null,"incoming_date":null,"incoming_note":null},{"option":"프레임팁 스타터팩","product":"FT 4개입","stock":"139","stock_date":"2026-11-20","incoming":null,"incoming_date":null,"incoming_note":null}],"option_sales_daily":[{"date":"2026-11-20","option":"맥세이프 킥프레임","qty":"49"},{"date":"2026-11-20","option":"PH 실버","qty":"34"},{"date":"2026-11-20","option":"PH 블랙","qty":"17"},{"date":"2026-11-20","option":"DW 프로 블랙","qty":"31"},{"date":"2026-11-20","option":"프레임팁 라이트","qty":"3"},{"date":"2026-11-20","option":"프레임팁 밸런스드","qty":"22"},{"date":"2026-11-20","option":"프레임팁 펌","qty":"7"},{"date":"2026-11-20","option":"프레임팁 솔리드","qty":"3"},{"date":"2026-11-20","option":"프레임팁 스타터팩","qty":"1"},{"date":"2026-11-21","option":"맥세이프 킥프레임","qty":"17"},{"date":"2026-11-21","option":"PH 실버","qty":"22"},{"date":"2026-11-21","option":"PH 블랙","qty":"4"},{"date":"2026-11-21","option":"DW 프로 블랙","qty":"11"},{"date":"2026-11-21","option":"프레임팁 라이트","qty":"2"},{"date":"2026-11-21","option":"프레임팁 밸런스드","qty":"12"},{"date":"2026-11-21","option":"프레임팁 펌","qty":"7"},{"date":"2026-11-21","option":"프레임팁 솔리드","qty":"7"},{"date":"2026-11-21","option":"프레임팁 스타터팩","qty":"3"},{"date":"2026-11-22","option":"맥세이프 킥프레임","qty":"23"},{"date":"2026-11-22","option":"PH 실버","qty":"18"},{"date":"2026-11-22","option":"PH 블랙","qty":"6"},{"date":"2026-11-22","option":"DW 프로 블랙","qty":"21"},{"date":"2026-11-22","option":"프레임팁 라이트","qty":"4"},{"date":"2026-11-22","option":"프레임팁 밸런스드","qty":"19"},{"date":"2026-11-22","option":"프레임팁 펌","qty":"12"},{"date":"2026-11-22","option":"프레임팁 솔리드","qty":"3"},{"date":"2026-11-22","option":"프레임팁 스타터팩","qty":"2"}],"option_sales_pre":[{"date":"2026-10-21","weekday":"수","option":"맥세이프 킥프레임","qty":"28"},{"date":"2026-10-21","weekday":"수","option":"PH 실버","qty":"18"},{"date":"2026-10-21","weekday":"수","option":"PH 블랙","qty":"5"},{"date":"2026-10-21","weekday":"수","option":"DW 프로 블랙","qty":"0"},{"date":"2026-10-21","weekday":"수","option":"프레임팁 라이트","qty":"2"},{"date":"2026-10-21","weekday":"수","option":"프레임팁 밸런스드","qty":"5"},{"date":"2026-10-21","weekday":"수","option":"프레임팁 펌","qty":"1"},{"date":"2026-10-21","weekday":"수","option":"프레임팁 솔리드","qty":"2"},{"date":"2026-10-21","weekday":"수","option":"프레임팁 스타터팩","qty":"7"},{"date":"2026-10-22","weekday":"목","option":"맥세이프 킥프레임","qty":"21"},{"date":"2026-10-22","weekday":"목","option":"PH 실버","qty":"32"},{"date":"2026-10-22","weekday":"목","option":"PH 블랙","qty":"13"},{"date":"2026-10-22","weekday":"목","option":"DW 프로 블랙","qty":"1"},{"date":"2026-10-22","weekday":"목","option":"프레임팁 라이트","qty":"0"},{"date":"2026-10-22","weekday":"목","option":"프레임팁 밸런스드","qty":"5"},{"date":"2026-10-22","weekday":"목","option":"프레임팁 펌","qty":"2"},{"date":"2026-10-22","weekday":"목","option":"프레임팁 솔리드","qty":"3"},{"date":"2026-10-22","weekday":"목","option":"프레임팁 스타터팩","qty":"7"},{"date":"2026-10-23","weekday":"금","option":"맥세이프 킥프레임","qty":"15"},{"date":"2026-10-23","weekday":"금","option":"PH 실버","qty":"15"},{"date":"2026-10-23","weekday":"금","option":"PH 블랙","qty":"10"},{"date":"2026-10-23","weekday":"금","option":"DW 프로 블랙","qty":"2"},{"date":"2026-10-23","weekday":"금","option":"프레임팁 라이트","qty":"0"},{"date":"2026-10-23","weekday":"금","option":"프레임팁 밸런스드","qty":"3"},{"date":"2026-10-23","weekday":"금","option":"프레임팁 펌","qty":"1"},{"date":"2026-10-23","weekday":"금","option":"프레임팁 솔리드","qty":"1"},{"date":"2026-10-23","weekday":"금","option":"프레임팁 스타터팩","qty":"10"},{"date":"2026-10-24","weekday":"토","option":"맥세이프 킥프레임","qty":"19"},{"date":"2026-10-24","weekday":"토","option":"PH 실버","qty":"12"},{"date":"2026-10-24","weekday":"토","option":"PH 블랙","qty":"4"},{"date":"2026-10-24","weekday":"토","option":"DW 프로 블랙","qty":"1"},{"date":"2026-10-24","weekday":"토","option":"프레임팁 라이트","qty":"1"},{"date":"2026-10-24","weekday":"토","option":"프레임팁 밸런스드","qty":"10"},{"date":"2026-10-24","weekday":"토","option":"프레임팁 펌","qty":"2"},{"date":"2026-10-24","weekday":"토","option":"프레임팁 솔리드","qty":"2"},{"date":"2026-10-24","weekday":"토","option":"프레임팁 스타터팩","qty":"9"},{"date":"2026-10-25","weekday":"일","option":"맥세이프 킥프레임","qty":"23"},{"date":"2026-10-25","weekday":"일","option":"PH 실버","qty":"11"},{"date":"2026-10-25","weekday":"일","option":"PH 블랙","qty":"5"},{"date":"2026-10-25","weekday":"일","option":"DW 프로 블랙","qty":"1"},{"date":"2026-10-25","weekday":"일","option":"프레임팁 라이트","qty":"0"},{"date":"2026-10-25","weekday":"일","option":"프레임팁 밸런스드","qty":"8"},{"date":"2026-10-25","weekday":"일","option":"프레임팁 펌","qty":"3"},{"date":"2026-10-25","weekday":"일","option":"프레임팁 솔리드","qty":"3"},{"date":"2026-10-25","weekday":"일","option":"프레임팁 스타터팩","qty":"6"},{"date":"2026-10-26","weekday":"월","option":"맥세이프 킥프레임","qty":"17"},{"date":"2026-10-26","weekday":"월","option":"PH 실버","qty":"22"},{"date":"2026-10-26","weekday":"월","option":"PH 블랙","qty":"5"},{"date":"2026-10-26","weekday":"월","option":"DW 프로 블랙","qty":"1"},{"date":"2026-10-26","weekday":"월","option":"프레임팁 라이트","qty":"1"},{"date":"2026-10-26","weekday":"월","option":"프레임팁 밸런스드","qty":"7"},{"date":"2026-10-26","weekday":"월","option":"프레임팁 펌","qty":"0"},{"date":"2026-10-26","weekday":"월","option":"프레임팁 솔리드","qty":"3"},{"date":"2026-10-26","weekday":"월","option":"프레임팁 스타터팩","qty":"9"},{"date":"2026-10-27","weekday":"화","option":"맥세이프 킥프레임","qty":"20"},{"date":"2026-10-27","weekday":"화","option":"PH 실버","qty":"23"},{"date":"2026-10-27","weekday":"화","option":"PH 블랙","qty":"6"},{"date":"2026-10-27","weekday":"화","option":"DW 프로 블랙","qty":"4"},{"date":"2026-10-27","weekday":"화","option":"프레임팁 라이트","qty":"2"},{"date":"2026-10-27","weekday":"화","option":"프레임팁 밸런스드","qty":"9"},{"date":"2026-10-27","weekday":"화","option":"프레임팁 펌","qty":"5"},{"date":"2026-10-27","weekday":"화","option":"프레임팁 솔리드","qty":"2"},{"date":"2026-10-27","weekday":"화","option":"프레임팁 스타터팩","qty":"9"},{"date":"2026-10-28","weekday":"수","option":"맥세이프 킥프레임","qty":"23"},{"date":"2026-10-28","weekday":"수","option":"PH 실버","qty":"10"},{"date":"2026-10-28","weekday":"수","option":"PH 블랙","qty":"6"},{"date":"2026-10-28","weekday":"수","option":"DW 프로 블랙","qty":"3"},{"date":"2026-10-28","weekday":"수","option":"프레임팁 라이트","qty":"2"},{"date":"2026-10-28","weekday":"수","option":"프레임팁 밸런스드","qty":"6"},{"date":"2026-10-28","weekday":"수","option":"프레임팁 펌","qty":"2"},{"date":"2026-10-28","weekday":"수","option":"프레임팁 솔리드","qty":"1"},{"date":"2026-10-28","weekday":"수","option":"프레임팁 스타터팩","qty":"8"},{"date":"2026-10-29","weekday":"목","option":"맥세이프 킥프레임","qty":"9"},{"date":"2026-10-29","weekday":"목","option":"PH 실버","qty":"14"},{"date":"2026-10-29","weekday":"목","option":"PH 블랙","qty":"3"},{"date":"2026-10-29","weekday":"목","option":"DW 프로 블랙","qty":"12"},{"date":"2026-10-29","weekday":"목","option":"프레임팁 라이트","qty":"0"},{"date":"2026-10-29","weekday":"목","option":"프레임팁 밸런스드","qty":"11"},{"date":"2026-10-29","weekday":"목","option":"프레임팁 펌","qty":"4"},{"date":"2026-10-29","weekday":"목","option":"프레임팁 솔리드","qty":"1"},{"date":"2026-10-29","weekday":"목","option":"프레임팁 스타터팩","qty":"11"},{"date":"2026-10-30","weekday":"금","option":"맥세이프 킥프레임","qty":"12"},{"date":"2026-10-30","weekday":"금","option":"PH 실버","qty":"19"},{"date":"2026-10-30","weekday":"금","option":"PH 블랙","qty":"5"},{"date":"2026-10-30","weekday":"금","option":"DW 프로 블랙","qty":"1"},{"date":"2026-10-30","weekday":"금","option":"프레임팁 라이트","qty":"3"},{"date":"2026-10-30","weekday":"금","option":"프레임팁 밸런스드","qty":"6"},{"date":"2026-10-30","weekday":"금","option":"프레임팁 펌","qty":"6"},{"date":"2026-10-30","weekday":"금","option":"프레임팁 솔리드","qty":"1"},{"date":"2026-10-30","weekday":"금","option":"프레임팁 스타터팩","qty":"13"},{"date":"2026-10-31","weekday":"토","option":"맥세이프 킥프레임","qty":"9"},{"date":"2026-10-31","weekday":"토","option":"PH 실버","qty":"9"},{"date":"2026-10-31","weekday":"토","option":"PH 블랙","qty":"5"},{"date":"2026-10-31","weekday":"토","option":"DW 프로 블랙","qty":"3"},{"date":"2026-10-31","weekday":"토","option":"프레임팁 라이트","qty":"2"},{"date":"2026-10-31","weekday":"토","option":"프레임팁 밸런스드","qty":"11"},{"date":"2026-10-31","weekday":"토","option":"프레임팁 펌","qty":"5"},{"date":"2026-10-31","weekday":"토","option":"프레임팁 솔리드","qty":"1"},{"date":"2026-10-31","weekday":"토","option":"프레임팁 스타터팩","qty":"11"},{"date":"2026-11-01","weekday":"일","option":"맥세이프 킥프레임","qty":"23"},{"date":"2026-11-01","weekday":"일","option":"PH 실버","qty":"12"},{"date":"2026-11-01","weekday":"일","option":"PH 블랙","qty":"4"},{"date":"2026-11-01","weekday":"일","option":"DW 프로 블랙","qty":"2"},{"date":"2026-11-01","weekday":"일","option":"프레임팁 라이트","qty":"3"},{"date":"2026-11-01","weekday":"일","option":"프레임팁 밸런스드","qty":"11"},{"date":"2026-11-01","weekday":"일","option":"프레임팁 펌","qty":"3"},{"date":"2026-11-01","weekday":"일","option":"프레임팁 솔리드","qty":"2"},{"date":"2026-11-01","weekday":"일","option":"프레임팁 스타터팩","qty":"13"},{"date":"2026-11-02","weekday":"월","option":"맥세이프 킥프레임","qty":"27"},{"date":"2026-11-02","weekday":"월","option":"PH 실버","qty":"14"},{"date":"2026-11-02","weekday":"월","option":"PH 블랙","qty":"2"},{"date":"2026-11-02","weekday":"월","option":"DW 프로 블랙","qty":"2"},{"date":"2026-11-02","weekday":"월","option":"프레임팁 라이트","qty":"0"},{"date":"2026-11-02","weekday":"월","option":"프레임팁 밸런스드","qty":"5"},{"date":"2026-11-02","weekday":"월","option":"프레임팁 펌","qty":"4"},{"date":"2026-11-02","weekday":"월","option":"프레임팁 솔리드","qty":"4"},{"date":"2026-11-02","weekday":"월","option":"프레임팁 스타터팩","qty":"6"},{"date":"2026-11-03","weekday":"화","option":"맥세이프 킥프레임","qty":"12"},{"date":"2026-11-03","weekday":"화","option":"PH 실버","qty":"21"},{"date":"2026-11-03","weekday":"화","option":"PH 블랙","qty":"11"},{"date":"2026-11-03","weekday":"화","option":"DW 프로 블랙","qty":"5"},{"date":"2026-11-03","weekday":"화","option":"프레임팁 라이트","qty":"2"},{"date":"2026-11-03","weekday":"화","option":"프레임팁 밸런스드","qty":"12"},{"date":"2026-11-03","weekday":"화","option":"프레임팁 펌","qty":"3"},{"date":"2026-11-03","weekday":"화","option":"프레임팁 솔리드","qty":"0"},{"date":"2026-11-03","weekday":"화","option":"프레임팁 스타터팩","qty":"19"},{"date":"2026-11-04","weekday":"수","option":"맥세이프 킥프레임","qty":"19"},{"date":"2026-11-04","weekday":"수","option":"PH 실버","qty":"57"},{"date":"2026-11-04","weekday":"수","option":"PH 블랙","qty":"10"},{"date":"2026-11-04","weekday":"수","option":"DW 프로 블랙","qty":"3"},{"date":"2026-11-04","weekday":"수","option":"프레임팁 라이트","qty":"1"},{"date":"2026-11-04","weekday":"수","option":"프레임팁 밸런스드","qty":"14"},{"date":"2026-11-04","weekday":"수","option":"프레임팁 펌","qty":"4"},{"date":"2026-11-04","weekday":"수","option":"프레임팁 솔리드","qty":"0"},{"date":"2026-11-04","weekday":"수","option":"프레임팁 스타터팩","qty":"15"},{"date":"2026-11-05","weekday":"목","option":"맥세이프 킥프레임","qty":"14"},{"date":"2026-11-05","weekday":"목","option":"PH 실버","qty":"14"},{"date":"2026-11-05","weekday":"목","option":"PH 블랙","qty":"13"},{"date":"2026-11-05","weekday":"목","option":"DW 프로 블랙","qty":"3"},{"date":"2026-11-05","weekday":"목","option":"프레임팁 라이트","qty":"0"},{"date":"2026-11-05","weekday":"목","option":"프레임팁 밸런스드","qty":"6"},{"date":"2026-11-05","weekday":"목","option":"프레임팁 펌","qty":"6"},{"date":"2026-11-05","weekday":"목","option":"프레임팁 솔리드","qty":"2"},{"date":"2026-11-05","weekday":"목","option":"프레임팁 스타터팩","qty":"15"},{"date":"2026-11-06","weekday":"금","option":"맥세이프 킥프레임","qty":"20"},{"date":"2026-11-06","weekday":"금","option":"PH 실버","qty":"28"},{"date":"2026-11-06","weekday":"금","option":"PH 블랙","qty":"8"},{"date":"2026-11-06","weekday":"금","option":"DW 프로 블랙","qty":"2"},{"date":"2026-11-06","weekday":"금","option":"프레임팁 라이트","qty":"0"},{"date":"2026-11-06","weekday":"금","option":"프레임팁 밸런스드","qty":"4"},{"date":"2026-11-06","weekday":"금","option":"프레임팁 펌","qty":"3"},{"date":"2026-11-06","weekday":"금","option":"프레임팁 솔리드","qty":"3"},{"date":"2026-11-06","weekday":"금","option":"프레임팁 스타터팩","qty":"3"},{"date":"2026-11-07","weekday":"토","option":"맥세이프 킥프레임","qty":"13"},{"date":"2026-11-07","weekday":"토","option":"PH 실버","qty":"14"},{"date":"2026-11-07","weekday":"토","option":"PH 블랙","qty":"6"},{"date":"2026-11-07","weekday":"토","option":"DW 프로 블랙","qty":"4"},{"date":"2026-11-07","weekday":"토","option":"프레임팁 라이트","qty":"0"},{"date":"2026-11-07","weekday":"토","option":"프레임팁 밸런스드","qty":"16"},{"date":"2026-11-07","weekday":"토","option":"프레임팁 펌","qty":"3"},{"date":"2026-11-07","weekday":"토","option":"프레임팁 솔리드","qty":"3"},{"date":"2026-11-07","weekday":"토","option":"프레임팁 스타터팩","qty":"14"},{"date":"2026-11-08","weekday":"일","option":"맥세이프 킥프레임","qty":"9"},{"date":"2026-11-08","weekday":"일","option":"PH 실버","qty":"8"},{"date":"2026-11-08","weekday":"일","option":"PH 블랙","qty":"11"},{"date":"2026-11-08","weekday":"일","option":"DW 프로 블랙","qty":"1"},{"date":"2026-11-08","weekday":"일","option":"프레임팁 라이트","qty":"2"},{"date":"2026-11-08","weekday":"일","option":"프레임팁 밸런스드","qty":"8"},{"date":"2026-11-08","weekday":"일","option":"프레임팁 펌","qty":"2"},{"date":"2026-11-08","weekday":"일","option":"프레임팁 솔리드","qty":"2"},{"date":"2026-11-08","weekday":"일","option":"프레임팁 스타터팩","qty":"5"},{"date":"2026-11-09","weekday":"월","option":"맥세이프 킥프레임","qty":"18"},{"date":"2026-11-09","weekday":"월","option":"PH 실버","qty":"14"},{"date":"2026-11-09","weekday":"월","option":"PH 블랙","qty":"9"},{"date":"2026-11-09","weekday":"월","option":"DW 프로 블랙","qty":"2"},{"date":"2026-11-09","weekday":"월","option":"프레임팁 라이트","qty":"0"},{"date":"2026-11-09","weekday":"월","option":"프레임팁 밸런스드","qty":"9"},{"date":"2026-11-09","weekday":"월","option":"프레임팁 펌","qty":"2"},{"date":"2026-11-09","weekday":"월","option":"프레임팁 솔리드","qty":"3"},{"date":"2026-11-09","weekday":"월","option":"프레임팁 스타터팩","qty":"9"},{"date":"2026-11-10","weekday":"화","option":"맥세이프 킥프레임","qty":"14"},{"date":"2026-11-10","weekday":"화","option":"PH 실버","qty":"12"},{"date":"2026-11-10","weekday":"화","option":"PH 블랙","qty":"14"},{"date":"2026-11-10","weekday":"화","option":"DW 프로 블랙","qty":"8"},{"date":"2026-11-10","weekday":"화","option":"프레임팁 라이트","qty":"0"},{"date":"2026-11-10","weekday":"화","option":"프레임팁 밸런스드","qty":"10"},{"date":"2026-11-10","weekday":"화","option":"프레임팁 펌","qty":"7"},{"date":"2026-11-10","weekday":"화","option":"프레임팁 솔리드","qty":"3"},{"date":"2026-11-10","weekday":"화","option":"프레임팁 스타터팩","qty":"13"},{"date":"2026-11-11","weekday":"수","option":"맥세이프 킥프레임","qty":"23"},{"date":"2026-11-11","weekday":"수","option":"PH 실버","qty":"14"},{"date":"2026-11-11","weekday":"수","option":"PH 블랙","qty":"8"},{"date":"2026-11-11","weekday":"수","option":"DW 프로 블랙","qty":"6"},{"date":"2026-11-11","weekday":"수","option":"프레임팁 라이트","qty":"1"},{"date":"2026-11-11","weekday":"수","option":"프레임팁 밸런스드","qty":"7"},{"date":"2026-11-11","weekday":"수","option":"프레임팁 펌","qty":"6"},{"date":"2026-11-11","weekday":"수","option":"프레임팁 솔리드","qty":"0"},{"date":"2026-11-11","weekday":"수","option":"프레임팁 스타터팩","qty":"11"},{"date":"2026-11-12","weekday":"목","option":"맥세이프 킥프레임","qty":"11"},{"date":"2026-11-12","weekday":"목","option":"PH 실버","qty":"18"},{"date":"2026-11-12","weekday":"목","option":"PH 블랙","qty":"9"},{"date":"2026-11-12","weekday":"목","option":"DW 프로 블랙","qty":"3"},{"date":"2026-11-12","weekday":"목","option":"프레임팁 라이트","qty":"1"},{"date":"2026-11-12","weekday":"목","option":"프레임팁 밸런스드","qty":"4"},{"date":"2026-11-12","weekday":"목","option":"프레임팁 펌","qty":"3"},{"date":"2026-11-12","weekday":"목","option":"프레임팁 솔리드","qty":"1"},{"date":"2026-11-12","weekday":"목","option":"프레임팁 스타터팩","qty":"14"},{"date":"2026-11-13","weekday":"금","option":"맥세이프 킥프레임","qty":"19"},{"date":"2026-11-13","weekday":"금","option":"PH 실버","qty":"11"},{"date":"2026-11-13","weekday":"금","option":"PH 블랙","qty":"4"},{"date":"2026-11-13","weekday":"금","option":"DW 프로 블랙","qty":"2"},{"date":"2026-11-13","weekday":"금","option":"프레임팁 라이트","qty":"0"},{"date":"2026-11-13","weekday":"금","option":"프레임팁 밸런스드","qty":"6"},{"date":"2026-11-13","weekday":"금","option":"프레임팁 펌","qty":"3"},{"date":"2026-11-13","weekday":"금","option":"프레임팁 솔리드","qty":"1"},{"date":"2026-11-13","weekday":"금","option":"프레임팁 스타터팩","qty":"12"},{"date":"2026-11-14","weekday":"토","option":"맥세이프 킥프레임","qty":"13"},{"date":"2026-11-14","weekday":"토","option":"PH 실버","qty":"13"},{"date":"2026-11-14","weekday":"토","option":"PH 블랙","qty":"4"},{"date":"2026-11-14","weekday":"토","option":"DW 프로 블랙","qty":"2"},{"date":"2026-11-14","weekday":"토","option":"프레임팁 라이트","qty":"1"},{"date":"2026-11-14","weekday":"토","option":"프레임팁 밸런스드","qty":"4"},{"date":"2026-11-14","weekday":"토","option":"프레임팁 펌","qty":"1"},{"date":"2026-11-14","weekday":"토","option":"프레임팁 솔리드","qty":"2"},{"date":"2026-11-14","weekday":"토","option":"프레임팁 스타터팩","qty":"8"},{"date":"2026-11-15","weekday":"일","option":"맥세이프 킥프레임","qty":"17"},{"date":"2026-11-15","weekday":"일","option":"PH 실버","qty":"11"},{"date":"2026-11-15","weekday":"일","option":"PH 블랙","qty":"5"},{"date":"2026-11-15","weekday":"일","option":"DW 프로 블랙","qty":"1"},{"date":"2026-11-15","weekday":"일","option":"프레임팁 라이트","qty":"2"},{"date":"2026-11-15","weekday":"일","option":"프레임팁 밸런스드","qty":"5"},{"date":"2026-11-15","weekday":"일","option":"프레임팁 펌","qty":"1"},{"date":"2026-11-15","weekday":"일","option":"프레임팁 솔리드","qty":"2"},{"date":"2026-11-15","weekday":"일","option":"프레임팁 스타터팩","qty":"5"},{"date":"2026-11-16","weekday":"월","option":"맥세이프 킥프레임","qty":"18"},{"date":"2026-11-16","weekday":"월","option":"PH 실버","qty":"18"},{"date":"2026-11-16","weekday":"월","option":"PH 블랙","qty":"8"},{"date":"2026-11-16","weekday":"월","option":"DW 프로 블랙","qty":"3"},{"date":"2026-11-16","weekday":"월","option":"프레임팁 라이트","qty":"2"},{"date":"2026-11-16","weekday":"월","option":"프레임팁 밸런스드","qty":"2"},{"date":"2026-11-16","weekday":"월","option":"프레임팁 펌","qty":"2"},{"date":"2026-11-16","weekday":"월","option":"프레임팁 솔리드","qty":"0"},{"date":"2026-11-16","weekday":"월","option":"프레임팁 스타터팩","qty":"11"},{"date":"2026-11-17","weekday":"화","option":"맥세이프 킥프레임","qty":"11"},{"date":"2026-11-17","weekday":"화","option":"PH 실버","qty":"14"},{"date":"2026-11-17","weekday":"화","option":"PH 블랙","qty":"6"},{"date":"2026-11-17","weekday":"화","option":"DW 프로 블랙","qty":"5"},{"date":"2026-11-17","weekday":"화","option":"프레임팁 라이트","qty":"0"},{"date":"2026-11-17","weekday":"화","option":"프레임팁 밸런스드","qty":"2"},{"date":"2026-11-17","weekday":"화","option":"프레임팁 펌","qty":"2"},{"date":"2026-11-17","weekday":"화","option":"프레임팁 솔리드","qty":"3"},{"date":"2026-11-17","weekday":"화","option":"프레임팁 스타터팩","qty":"4"},{"date":"2026-11-18","weekday":"수","option":"맥세이프 킥프레임","qty":"12"},{"date":"2026-11-18","weekday":"수","option":"PH 실버","qty":"15"},{"date":"2026-11-18","weekday":"수","option":"PH 블랙","qty":"5"},{"date":"2026-11-18","weekday":"수","option":"DW 프로 블랙","qty":"2"},{"date":"2026-11-18","weekday":"수","option":"프레임팁 라이트","qty":"0"},{"date":"2026-11-18","weekday":"수","option":"프레임팁 밸런스드","qty":"2"},{"date":"2026-11-18","weekday":"수","option":"프레임팁 펌","qty":"2"},{"date":"2026-11-18","weekday":"수","option":"프레임팁 솔리드","qty":"4"},{"date":"2026-11-18","weekday":"수","option":"프레임팁 스타터팩","qty":"7"},{"date":"2026-11-19","weekday":"목","option":"맥세이프 킥프레임","qty":"11"},{"date":"2026-11-19","weekday":"목","option":"PH 실버","qty":"16"},{"date":"2026-11-19","weekday":"목","option":"PH 블랙","qty":"4"},{"date":"2026-11-19","weekday":"목","option":"DW 프로 블랙","qty":"5"},{"date":"2026-11-19","weekday":"목","option":"프레임팁 라이트","qty":"0"},{"date":"2026-11-19","weekday":"목","option":"프레임팁 밸런스드","qty":"4"},{"date":"2026-11-19","weekday":"목","option":"프레임팁 펌","qty":"5"},{"date":"2026-11-19","weekday":"목","option":"프레임팁 솔리드","qty":"4"},{"date":"2026-11-19","weekday":"목","option":"프레임팁 스타터팩","qty":"6"}],"roas_daily":[{"date":"2026-11-20","weekday":"금","ad_spend":"1619952","ad_revenue":"9887290"},{"date":"2026-11-21","weekday":"토","ad_spend":"952925","ad_revenue":"5212518"},{"date":"2026-11-22","weekday":"일","ad_spend":"996440","ad_revenue":"5229755"}]};
+
+/* ---- 간단한 대시보드 런타임 ---- */
+const dash = (() => {
+  const calcs = new Map(), draws = new Map(), results = new Map(), errors = new Set(), onDataFns = [];
+  const resolve = (id, stack = []) => {
+    if (results.has(id) || errors.has(id)) return;
+    if (id in RAW) { results.set(id, RAW[id]); return; }
+    const spec = calcs.get(id);
+    if (!spec || stack.includes(id)) { errors.add(id); return; }
+    (spec.inputs || []).forEach((i) => resolve(i, [...stack, id]));
+    if ((spec.inputs || []).some((i) => errors.has(i))) { errors.add(id); return; }
+    try { results.set(id, spec.fn(...(spec.inputs || []).map((i) => results.get(i)))); }
+    catch (e) { console.error('calc 실패:', id, e); errors.add(id); }
+  };
+  const render = (name) => {
+    const fn = draws.get(name);
+    if (!fn) return;
+    document.querySelectorAll(`[data-draw="${name}"]`).forEach((el) => {
+      try { fn(el); } catch (e) { console.error('draw 실패:', name, e); }
+    });
+  };
+  return {
+    colors: ['var(--c0)', 'var(--c1)', 'var(--c2)', 'var(--c3)', 'var(--c4)', 'var(--c5)', 'var(--c6)', 'var(--c7)'],
+    calc(id, spec) { calcs.set(id, spec); },
+    draw(name, fn) { if (fn) draws.set(name, fn); else render(name); },
+    data(id) {
+      resolve(id);
+      if (errors.has(id)) return { status: 'error', data: null };
+      return results.has(id) ? { status: 'ok', data: results.get(id) } : { status: 'loading', data: null };
+    },
+    onData(fn) { onDataFns.push(fn); },
+    _start() {
+      calcs.forEach((_, id) => resolve(id));
+      draws.forEach((_, name) => render(name));
+      onDataFns.forEach((fn) => fn());
+    },
+    _redraw() { draws.forEach((_, name) => render(name)); }
+  };
+})();
+
+const R1 = (x) => (x === null || x === undefined || !isFinite(x)) ? null : Math.round(x * 10) / 10;
+
+dash.calc('rev_days', {
+  inputs: ['revenue_daily'],
+  title: '일차별 매출',
+  description: '행사 일차별로 작년·올해 채널 매출과 누적 매출을 나란히 놓고, 같은 일차끼리 비교합니다.',
+  fn: (revenue) => {
+    const r1 = (x) => Math.round(x * 10) / 10;
+    const CH = ['own', 'naver', 'mmall', 'coupang'];
+    const KEYS = ['total', ...CH];
+    const TY_START = '2026-11-20', TY_DAYS = 11;
+    const WD = ['일', '월', '화', '수', '목', '금', '토'];
+    const rows = revenue.map((r) => {
+      const o = { year: Number(r.year), day: Number(r.day), date: r.date, weekday: r.weekday };
+      CH.forEach((k) => { o[k] = Number(r[k]); });
+      o.total = CH.reduce((s, k) => s + o[k], 0);
+      return o;
+    });
+    const ly = rows.filter((r) => r.year === 2025), ty = rows.filter((r) => r.year === 2026);
+    const maxDay = Math.max(TY_DAYS, ...ly.map((r) => r.day));
+    const cum = { ly: {}, ty: {} };
+    KEYS.forEach((k) => { cum.ly[k] = 0; cum.ty[k] = 0; });
+    const out = [];
+    for (let d = 1; d <= maxDay; d++) {
+      const a = ly.find((r) => r.day === d), b = ty.find((r) => r.day === d);
+      const o = { day: d, ly_date: a ? a.date : null, ly_wd: a ? a.weekday : null, ty_date: null, ty_wd: null };
+      if (b) { o.ty_date = b.date; o.ty_wd = b.weekday; }
+      else if (d <= TY_DAYS) {
+        const t = new Date(TY_START + 'T00:00:00Z');
+        t.setUTCDate(t.getUTCDate() + d - 1);
+        o.ty_date = t.toISOString().slice(0, 10);
+        o.ty_wd = WD[t.getUTCDay()];
+      }
+      KEYS.forEach((k) => {
+        if (a) cum.ly[k] += a[k];
+        if (b) cum.ty[k] += b[k];
+        o['ly_' + k] = a ? a[k] : null;
+        o['ty_' + k] = b ? b[k] : null;
+        o['ly_cum_' + k] = a ? cum.ly[k] : null;
+        o['ty_cum_' + k] = b ? cum.ty[k] : null;
+      });
+      o.rate = a && b ? r1(b.total / a.total * 100) : null;
+      o.cum_rate = a && b ? r1(cum.ty.total / cum.ly.total * 100) : null;
+      out.push(o);
+    }
+    return out;
+  }
+});
+
+dash.calc('rev_summary', {
+  inputs: ['revenue_daily'],
+  title: '채널별 매출 요약',
+  description: '채널별 작년 15일 합계·일평균, 올해 누적·누적 일평균, 같은 일차까지의 작년 누적과 비교합니다.',
+  fn: (revenue) => {
+    const r1 = (x) => Math.round(x * 10) / 10;
+    const CH = [['total', '전체'], ['own', '자사몰'], ['naver', '스마트스토어'], ['mmall', 'M-mall'], ['coupang', '쿠팡']];
+    const EVENT_DAYS = 11;
+    const rows = revenue.map((r) => {
+      const o = { year: Number(r.year), day: Number(r.day), own: Number(r.own), naver: Number(r.naver), mmall: Number(r.mmall), coupang: Number(r.coupang) };
+      o.total = o.own + o.naver + o.mmall + o.coupang;
+      return o;
+    });
+    const ly = rows.filter((r) => r.year === 2025), ty = rows.filter((r) => r.year === 2026);
+    const n = ty.length, lyN = ly.length;
+    const sum = (a, k) => a.reduce((s, r) => s + r[k], 0);
+    const lyAll = sum(ly, 'total'), tyAll = sum(ty, 'total');
+    return CH.map(([k, name]) => {
+      const ls = sum(ly, k), ts = sum(ty, k), same = sum(ly.filter((r) => r.day <= n), k);
+      return {
+        channel: name, key: k, ly_days: lyN, ty_days: n, event_days: EVENT_DAYS, remain_days: EVENT_DAYS - n,
+        ly_sum: ls, ly_avg: Math.round(ls / lyN), ty_sum: ts, ty_avg: n ? Math.round(ts / n) : null,
+        avg_rate: n ? r1((ts / n) / (ls / lyN) * 100) : null,
+        ly_same: same, same_rate: n ? r1(ts / same * 100) : null,
+        ly_share: r1(ls / lyAll * 100), ty_share: n ? r1(ts / tyAll * 100) : null
+      };
+    });
+  }
+});
+
+dash.calc('qty_days', {
+  inputs: ['product_qty_daily'],
+  title: '일차별 제품 판매수량',
+  description: '주요 제품마다 행사 일차별 작년·올해 판매수량을 나란히 놓습니다.',
+  fn: (qty) => {
+    const rows = qty.map((r) => ({ year: Number(r.year), day: Number(r.day), date: r.date, product: r.product, qty: Number(r.qty) }));
+    const products = [...new Set(rows.map((r) => r.product))];
+    const maxDay = Math.max(11, ...rows.map((r) => r.day));
+    const out = [];
+    products.forEach((p) => {
+      for (let d = 1; d <= maxDay; d++) {
+        const a = rows.find((r) => r.year === 2025 && r.product === p && r.day === d);
+        const b = rows.find((r) => r.year === 2026 && r.product === p && r.day === d);
+        out.push({ product: p, day: d, ly: a ? a.qty : null, ty: b ? b.qty : null, ly_date: a ? a.date : null, ty_date: b ? b.date : null });
+      }
+    });
+    return out;
+  }
+});
+
+dash.calc('qty_summary', {
+  inputs: ['product_qty_daily'],
+  title: '제품별 판매수량 요약',
+  description: '제품별 작년 15일 합계·일평균과 올해 누적·누적 일평균, 같은 일차까지의 작년 누적과 비교합니다.',
+  fn: (qty) => {
+    const r1 = (x) => Math.round(x * 10) / 10;
+    const rows = qty.map((r) => ({ year: Number(r.year), day: Number(r.day), product: r.product, qty: Number(r.qty) }));
+    const products = [...new Set(rows.map((r) => r.product))];
+    const lyDays = Math.max(...rows.filter((r) => r.year === 2025).map((r) => r.day));
+    const tyRowsAll = rows.filter((r) => r.year === 2026);
+    const tyDays = tyRowsAll.length ? Math.max(...tyRowsAll.map((r) => r.day)) : 0;
+    const make = (name, pick) => {
+      const ly = rows.filter((r) => r.year === 2025 && pick(r.product));
+      const ty = rows.filter((r) => r.year === 2026 && pick(r.product));
+      const ls = ly.reduce((s, r) => s + r.qty, 0);
+      const ts = ty.length ? ty.reduce((s, r) => s + r.qty, 0) : null;
+      const same = ly.filter((r) => r.day <= tyDays).reduce((s, r) => s + r.qty, 0);
+      const lyAvg = ls / lyDays, tyAvg = ts === null || !tyDays ? null : ts / tyDays;
+      return {
+        product: name, status: ts === null ? '단종·품절' : ts === 0 ? '판매 없음' : '판매 중', ty_days: tyDays,
+        ly_sum: ls, ly_avg: r1(lyAvg), ty_sum: ts, ty_avg: tyAvg === null ? null : r1(tyAvg),
+        avg_rate: tyAvg === null ? null : r1(tyAvg / lyAvg * 100),
+        ly_same: same, same_rate: ts === null || !same ? null : r1(ts / same * 100)
+      };
+    };
+    return [...products.map((p) => make(p, (x) => x === p)), make('주요 제품 합계', () => true)];
+  }
+});
+
+dash.calc('prod_share', {
+  inputs: ['product_qty_daily', 'prices'],
+  title: '제품별 매출 비중',
+  description: '판매수량 × 해당 연도 행사 할인가로 제품 매출을 추정하고, 주요 제품 매출 안에서의 비중을 계산합니다. 가격이 없는 제품은 0원으로 계산됩니다.',
+  fn: (qty, prices) => {
+    const r1 = (x) => Math.round(x * 10) / 10;
+    const GROUP = { 'DW 플러스': 'DW 플러스·베이직', 'DW 베이직': 'DW 플러스·베이직' };
+    const price = (y, p) => { const r = prices.find((x) => Number(x.year) === y && x.product === p); return r ? Number(r.sale_price) : 0; };
+    const acc = new Map();
+    qty.forEach((r) => {
+      const y = Number(r.year), g = GROUP[r.product] || r.product, q = Number(r.qty);
+      if (!acc.has(g)) acc.set(g, { product: g, ly_qty: 0, ty_qty: 0, ly_rev: 0, ty_rev: 0 });
+      const a = acc.get(g);
+      if (y === 2025) { a.ly_qty += q; a.ly_rev += q * price(y, r.product); }
+      else { a.ty_qty += q; a.ty_rev += q * price(y, r.product); }
+    });
+    const list = [...acc.values()];
+    const lyT = list.reduce((s, a) => s + a.ly_rev, 0), tyT = list.reduce((s, a) => s + a.ty_rev, 0);
+    return list.map((a) => ({ ...a, ly_share: r1(a.ly_rev / lyT * 100), ty_share: tyT ? r1(a.ty_rev / tyT * 100) : null, share_change: tyT ? r1(a.ty_rev / tyT * 100 - a.ly_rev / lyT * 100) : null }));
+  }
+});
+
+dash.calc('funnel_cmp', {
+  inputs: ['funnel_daily'],
+  title: '블프 직전 대비',
+  description: '자사몰+스마트스토어 합산으로 직전 30일(10/21~11/19)·직전 7일(11/13~11/19) 일평균과 블프 누적 일평균의 노출수·전환수·전환율(전환수 ÷ 노출수)을 비교합니다.',
+  fn: (funnel) => {
+    const r1 = (x) => (x === null || !isFinite(x)) ? null : Math.round(x * 10) / 10;
+    const r2 = (x) => (x === null || !isFinite(x)) ? null : Math.round(x * 100) / 100;
+    const PRE30 = ['2026-10-21', '2026-11-19'], PRE7 = ['2026-11-13', '2026-11-19'];
+    const rows = funnel.map((r) => ({ date: r.date, period: r.period, product: r.product, imp: Number(r.impressions), conv: Number(r.conversions) }));
+    const inRange = (d, [a, b]) => d >= a && d <= b;
+    const agg = (rs) => {
+      const dates = [...new Set(rs.map((r) => r.date))].sort();
+      const imp = rs.reduce((s, r) => s + r.imp, 0), conv = rs.reduce((s, r) => s + r.conv, 0), n = dates.length;
+      return { n, from: dates[0] || null, to: dates[n - 1] || null, imp: n ? imp / n : null, conv: n ? conv / n : null, rate: imp ? conv / imp * 100 : null };
+    };
+    const pct = (x, y) => (x === null || y === null || !y) ? null : r1((x / y - 1) * 100);
+    const pp = (x, y) => (x === null || y === null) ? null : r2(x - y);
+    const make = (name, pick) => {
+      const pr = rows.filter((r) => pick(r.product));
+      const a = agg(pr.filter((r) => r.period === '직전' && inRange(r.date, PRE30)));
+      const b = agg(pr.filter((r) => r.period === '직전' && inRange(r.date, PRE7)));
+      const c = agg(pr.filter((r) => r.period === '블프'));
+      return {
+        product: name, bf_days: c.n, pre30_from: a.from, pre30_to: a.to, pre7_from: b.from, pre7_to: b.to, bf_from: c.from, bf_to: c.to,
+        imp30: r1(a.imp), imp7: r1(b.imp), impbf: r1(c.imp), imp_vs30: pct(c.imp, a.imp), imp_vs7: pct(c.imp, b.imp),
+        conv30: r1(a.conv), conv7: r1(b.conv), convbf: r1(c.conv), conv_vs30: pct(c.conv, a.conv), conv_vs7: pct(c.conv, b.conv),
+        rate30: r2(a.rate), rate7: r2(b.rate), ratebf: r2(c.rate), rate_vs30: pp(c.rate, a.rate), rate_vs7: pp(c.rate, b.rate)
+      };
+    };
+    const products = [...new Set(rows.map((r) => r.product))];
+    return [...products.map((p) => make(p, (x) => x === p)), make('4개 제품 합계', () => true)];
+  }
+});
+
+dash.calc('funnel_days', {
+  inputs: ['funnel_daily'],
+  title: '제품별 일별 노출·전환',
+  description: '자사몰+스마트스토어를 날짜·제품별로 합산한 노출수, 전환수, 전환율(전환수 ÷ 노출수)입니다.',
+  fn: (funnel) => {
+    const acc = new Map();
+    funnel.forEach((r) => {
+      const k = r.date + '|' + r.product;
+      if (!acc.has(k)) acc.set(k, { date: r.date, weekday: r.weekday, period: r.period, product: r.product, imp: 0, conv: 0 });
+      const a = acc.get(k);
+      a.imp += Number(r.impressions);
+      a.conv += Number(r.conversions);
+    });
+    return [...acc.values()].sort((a, b) => a.date < b.date ? -1 : 1).map((a) => ({ ...a, rate: a.imp ? Math.round(a.conv / a.imp * 10000) / 100 : null }));
+  }
+});
+
+dash.calc('inventory_status', {
+  inputs: ['inventory', 'option_sales_daily', 'option_sales_pre'],
+  title: '옵션별 재고 현황',
+  description: '11/20 블프 시작 재고에서 블프 기간 옵션별 판매수량을 빼 현재 재고를 구합니다. 11/30까지는 블프 누적 일평균으로, 행사가 끝난 12/1부터는 직전 30일(10/21~11/19) 일평균으로 팔린다고 보고 품절 예정일을 잡습니다. 입고 예정은 따로 더해 계산합니다.',
+  fn: (inventory, salesAll, pre) => {
+    const r1 = (x) => Math.round(x * 10) / 10;
+    const EVENT_DAYS = 11, EVENT_END = '2026-11-30', MONTH_AFTER = '2026-12-30';
+    const WD = ['일', '월', '화', '수', '목', '금', '토'];
+    const sales = salesAll.filter((r) => r.date >= '2026-11-20');
+    const preDays = new Set(pre.filter((r) => r.date >= '2026-10-21' && r.date <= '2026-11-19').map((r) => r.date)).size;
+    const preAvg = (o) => preDays ? pre.filter((r) => r.option === o && r.date >= '2026-10-21' && r.date <= '2026-11-19').reduce((s, r) => s + Number(r.qty), 0) / preDays : 0;
+    const rows = sales.map((r) => ({ date: r.date, option: r.option, qty: Number(r.qty) }));
+    const dates = [...new Set(rows.map((r) => r.date))].sort();
+    const n = dates.length, remain = Math.max(0, EVENT_DAYS - n), last = dates[n - 1] || null;
+    const sum = (a) => a.reduce((s, r) => s + r.qty, 0);
+    const addDays = (iso, k) => { const t = new Date(iso + 'T00:00:00Z'); t.setUTCDate(t.getUTCDate() + k); return t.toISOString().slice(0, 10); };
+    const label = (iso) => { const t = new Date(iso + 'T00:00:00Z'); return `${t.getUTCMonth() + 1}/${t.getUTCDate()}(${WD[t.getUTCDay()]})`; };
+    // 행사 중(마지막 집계일 다음 날 ~ 11/30)은 블프 일평균, 12/1부터는 직전 30일 일평균으로 소진
+    const outDate = (left, avg, post) => {
+      if (left <= 0 || !last) return null;
+      const inEventSell = avg * remain;
+      if (avg > 0 && inEventSell >= left) return addDays(last, Math.ceil(left / avg));
+      if (!post) return null;
+      return addDays(EVENT_END, Math.ceil((left - inEventSell) / post));
+    };
+    return inventory.map((i) => {
+      const stock = Number(i.stock), sd = i.stock_date;
+      const mine = rows.filter((r) => r.option === i.option && r.date >= sd).sort((a, b) => a.date < b.date ? -1 : 1);
+      const sold = sum(mine), current = stock - sold, avg = n ? sold / n : 0, need = Math.round(avg * remain);
+      const post = preAvg(i.option);
+      const incoming = i.incoming === null || i.incoming === '' ? 0 : Number(i.incoming);
+      const withIn = current + incoming;
+      let soldOutOn = null, cum = 0;
+      for (const r of mine) { cum += r.qty; if (cum >= stock) { soldOutOn = r.date; break; } }
+      const out = current > 0 ? outDate(current, avg, post) : null;
+      const outIn = incoming ? outDate(withIn, avg, post) : null;
+      const inEvent = (d) => d !== null && d <= EVENT_END;
+      const soon = (d) => d !== null && d > EVENT_END && d <= MONTH_AFTER;
+      let status;
+      if (current <= 0) status = incoming && !inEvent(outIn) ? '품절 · 입고 대기' : '품절';
+      else if (inEvent(out)) status = incoming && !inEvent(outIn) ? '입고 후 충분' : '행사 중 품절 예정';
+      else if (soon(out)) status = '행사 후 한 달 내 품절';
+      else status = '충분';
+      const when = (d) => d ? `${label(d)} 품절 예정 · ${inEvent(d) ? '행사 중' : '행사 후'}` : '—';
+      const outText = current <= 0 ? `${soldOutOn ? label(soldOutOn) + ' ' : ''}품절` : when(out);
+      const outInText = !incoming ? null : when(outIn);
+      return {
+        option: i.option, product: i.product, status, stock_date: sd, stock, bf_sold: sold, current,
+        bf_days: n, remain_days: remain, last_date: last, avg: r1(avg), need,
+        end_stock: Math.round(current - avg * remain), end_with_incoming: incoming ? Math.round(withIn - avg * remain) : null,
+        post_avg: r1(post),
+        days_after_event: out && !inEvent(out) ? Math.round((new Date(out + 'T00:00:00Z') - new Date(EVENT_END + 'T00:00:00Z')) / 864e5) : null,
+        stockout_date: current <= 0 ? soldOutOn : out, stockout: outText,
+        incoming: incoming || null, incoming_date: i.incoming_date || null, with_incoming: incoming ? withIn : null,
+        stockout_incoming: outInText
+      };
+    });
+  }
+});
+
+dash.calc('option_days', {
+  inputs: ['option_sales_daily'],
+  title: '옵션별 일별 판매',
+  description: '옵션별로 블프 1~11일차(11/20~11/30) 판매수량을 일차에 맞춰 놓습니다.',
+  fn: (sales) => {
+    const START = '2026-11-20', DAYS = 11;
+    const options = [...new Set(sales.map((r) => r.option))];
+    const out = [];
+    options.forEach((o) => {
+      for (let d = 1; d <= DAYS; d++) {
+        const t = new Date(START + 'T00:00:00Z');
+        t.setUTCDate(t.getUTCDate() + d - 1);
+        const date = t.toISOString().slice(0, 10);
+        const r = sales.find((x) => x.option === o && x.date === date);
+        out.push({ option: o, day: d, date, qty: r ? Number(r.qty) : null });
+      }
+    });
+    return out;
+  }
+});
+
+dash.calc('option_cmp', {
+  inputs: ['option_sales_pre', 'option_sales_daily'],
+  title: '옵션별 직전 대비',
+  description: '옵션별 판매수량의 직전 30일(10/21~11/19)·직전 7일(11/13~11/19) 일평균과 블프 누적 일평균(11/20~)을 비교합니다. 제품 값은 옵션 합이고, 옵션 비중 = 옵션 판매수량 ÷ 같은 제품 옵션 합계입니다.',
+  fn: (pre, bf) => {
+    const groups = [
+      ['킥프레임', ['맥세이프 킥프레임']],
+      ['PH', ['PH 실버', 'PH 블랙']],
+      ['DW 프로', ['DW 프로 블랙']],
+      ['프레임팁', ['프레임팁 라이트', '프레임팁 밸런스드', '프레임팁 펌', '프레임팁 솔리드', '프레임팁 스타터팩']]
+    ];
+    const r1 = (x) => (x === null || !isFinite(x)) ? null : Math.round(x * 10) / 10;
+    const PRE30 = ['2026-10-21', '2026-11-19'], PRE7 = ['2026-11-13', '2026-11-19'], BF0 = '2026-11-20';
+    const rows = [
+      ...pre.map((r) => ({ date: r.date, option: r.option, qty: Number(r.qty) })),
+      ...bf.filter((r) => r.date >= BF0).map((r) => ({ date: r.date, option: r.option, qty: Number(r.qty) }))
+    ];
+    const periods = {
+      '30': rows.filter((r) => r.date >= PRE30[0] && r.date <= PRE30[1]),
+      '7': rows.filter((r) => r.date >= PRE7[0] && r.date <= PRE7[1]),
+      bf: rows.filter((r) => r.date >= BF0)
+    };
+    const days = Object.fromEntries(Object.entries(periods).map(([k, rs]) => [k, new Set(rs.map((r) => r.date)).size]));
+    const sumOf = (k, opts) => periods[k].filter((r) => opts.includes(r.option)).reduce((s, r) => s + r.qty, 0);
+    const pct = (a, b) => (a === null || b === null || !b) ? null : r1((a / b - 1) * 100);
+    const out = [];
+    groups.forEach(([g, opts]) => {
+      const tot = { '30': sumOf('30', opts), '7': sumOf('7', opts), bf: sumOf('bf', opts) };
+      const line = (name, kind, list) => {
+        const s = { '30': sumOf('30', list), '7': sumOf('7', list), bf: sumOf('bf', list) };
+        const avg = (k) => days[k] ? s[k] / days[k] : null;
+        const share = (k) => tot[k] ? s[k] / tot[k] * 100 : null;
+        const row = {
+          name, group: g, kind, multi: opts.length > 1,
+          sum30: s['30'], sum7: s['7'], sumbf: s.bf, days30: days['30'], days7: days['7'], bf_days: days.bf,
+          avg30: r1(avg('30')), avg7: r1(avg('7')), avgbf: r1(avg('bf')),
+          vs30: pct(avg('bf'), avg('30')), vs7: pct(avg('bf'), avg('7'))
+        };
+        if (kind === 'option' && opts.length > 1) {
+          Object.assign(row, {
+            share30: r1(share('30')), share7: r1(share('7')), sharebf: r1(share('bf')),
+            share_vs30: share('bf') === null || share('30') === null ? null : r1(share('bf') - share('30')),
+            share_vs7: share('bf') === null || share('7') === null ? null : r1(share('bf') - share('7'))
+          });
+        }
+        return row;
+      };
+      out.push(line(g, 'product', opts));
+      if (opts.length > 1) opts.forEach((o) => out.push(line(o, 'option', [o])));
+    });
+    return out;
+  }
+});
+
+dash.calc('option_trend', {
+  inputs: ['option_sales_pre', 'option_sales_daily'],
+  title: '옵션별 일별 판매 흐름',
+  description: '직전 30일(10/21~11/19)과 블프 기간(11/20~)의 일별 판매수량을 옵션별, 그리고 제품(옵션 합)별로 이어 놓습니다.',
+  fn: (pre, bf) => {
+    const groups = {
+      '킥프레임': ['맥세이프 킥프레임'], 'PH': ['PH 실버', 'PH 블랙'], 'DW 프로': ['DW 프로 블랙'],
+      '프레임팁': ['프레임팁 라이트', '프레임팁 밸런스드', '프레임팁 펌', '프레임팁 솔리드', '프레임팁 스타터팩']
+    };
+    const WD = ['일', '월', '화', '수', '목', '금', '토'];
+    const rows = [
+      ...pre.map((r) => ({ date: r.date, option: r.option, qty: Number(r.qty) })),
+      ...bf.filter((r) => r.date >= '2026-11-20').map((r) => ({ date: r.date, option: r.option, qty: Number(r.qty) }))
+    ];
+    const dates = [...new Set(rows.map((r) => r.date))].sort();
+    const out = [];
+    const push = (name, list) => dates.forEach((d) => {
+      const rs = rows.filter((r) => r.date === d && list.includes(r.option));
+      out.push({ name, date: d, weekday: WD[new Date(d + 'T00:00:00Z').getUTCDay()], period: d >= '2026-11-20' ? '블프' : '직전', qty: rs.length ? rs.reduce((s, r) => s + r.qty, 0) : null });
+    });
+    Object.entries(groups).forEach(([g, list]) => { push(g, list); if (list.length > 1) list.forEach((o) => push(o, [o])); });
+    return out;
+  }
+});
+
+dash.calc('roas_days', {
+  inputs: ['roas_daily'],
+  title: '행사 기간 일별 ROAS',
+  description: '행사 1~11일차(11/20~11/30)별 총광고비, 총유입매출, ROAS(유입매출 ÷ 광고비 × 100)와 행사 시작부터의 누적값입니다.',
+  fn: (rows) => {
+    const START = '2026-11-20', DAYS = 11, WD = ['일', '월', '화', '수', '목', '금', '토'];
+    const r2 = (x) => Math.round(x * 100) / 100;
+    let cs = 0, cr = 0;
+    const out = [];
+    for (let d = 1; d <= DAYS; d++) {
+      const t = new Date(START + 'T00:00:00Z');
+      t.setUTCDate(t.getUTCDate() + d - 1);
+      const date = t.toISOString().slice(0, 10);
+      const r = rows.find((x) => x.date === date && x.ad_spend !== null && x.ad_spend !== '');
+      const spend = r ? Number(r.ad_spend) : null, revenue = r ? Number(r.ad_revenue) : null;
+      if (r) { cs += spend; cr += revenue; }
+      out.push({
+        day: d, date, weekday: WD[t.getUTCDay()], spend, revenue, roas: r && spend ? r2(revenue / spend * 100) : null,
+        cum_spend: r ? cs : null, cum_revenue: r ? cr : null, cum_roas: r && cs ? r2(cr / cs * 100) : null
+      });
+    }
+    return out;
+  }
+});
+
+dash.calc('roas_summary', {
+  inputs: ['roas_daily'],
+  title: '행사 기간 ROAS 합계',
+  description: '행사 시작부터 지금까지 총광고비, 총유입매출 합계와 누적 ROAS(합계 유입매출 ÷ 합계 광고비 × 100), 일평균입니다.',
+  fn: (rows) => {
+    const rs = rows.filter((r) => r.date >= '2026-11-20' && r.date <= '2026-11-30' && r.ad_spend !== null && r.ad_spend !== '');
+    const spend = rs.reduce((s, r) => s + Number(r.ad_spend), 0), revenue = rs.reduce((s, r) => s + Number(r.ad_revenue), 0), n = rs.length;
+    return [{ days: n, spend, revenue, roas: spend ? Math.round(revenue / spend * 10000) / 100 : null, avg_spend: n ? Math.round(spend / n) : null, avg_revenue: n ? Math.round(revenue / n) : null }];
+  }
+});
+
+const fmt = d3.format(',');
+const f1 = d3.format(',.1f');
+const f2 = d3.format('.2f');
+const signed = (v, f) => (v > 0 ? '+' : v < 0 ? '-' : '') + f(Math.abs(v));
+const won = (v) => v >= 1e8 ? f1(v / 1e8) + '억' : v >= 1e4 ? fmt(Math.round(v / 1e4)) + '만' : fmt(v);
+const md = (iso, wd) => iso ? `${Number(iso.slice(5, 7))}/${Number(iso.slice(8, 10))}${wd ? ' (' + wd + ')' : ''}` : '—';
+const C_LY = 'var(--cds-chart-muted)';
+const STATUS_COLOR = { ok: 'var(--color-ok)', warn: 'var(--color-warn)', bad: 'var(--color-bad)', incoming: 'var(--cds-chart-muted)' };
+const STATUS_KEY = { '충분': 'ok', '입고 후 충분': 'warn', '품절 · 입고 대기': 'warn', '행사 후 한 달 내 품절': 'warn', '행사 중 품절 예정': 'bad', '품절': 'bad' };
+
+dash.onData(() => {
+  document.querySelectorAll('[data-swatch]').forEach((s) => {
+    const k = s.dataset.swatch;
+    s.style.background = k === 'muted' ? C_LY : STATUS_COLOR[k] || dash.colors[Number(k)];
+  });
+  document.querySelectorAll('[data-swatch-line]').forEach((s) => { s.style.borderColor = 'var(--color-fg)'; });
+});
+
+[['bfd-ch', ['revLine']], ['bfd-mode', ['revLine']], ['bfd-product', ['qtyDays']], ['bfd-metric', ['funnelBars', 'funnelLine']], ['bfd-fproduct', ['funnelLine']], ['bfd-opt', ['optLine']]].forEach(([id, draws]) => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('change', () => draws.forEach((d) => dash.draw(d)));
+});
+const ctl = (id, dflt) => { const el = document.getElementById(id); return el && el.value ? el.value : dflt; };
+
+function cellValue(el) {
+  const d = dash.data(el.dataset.source);
+  if (d.status !== 'ok' || !Array.isArray(d.data) || !d.data.length) return null;
+  let row = d.data[Number(el.dataset.row || 0)];
+  if (el.dataset.where) {
+    const i = el.dataset.where.indexOf('=');
+    const k = el.dataset.where.slice(0, i), v = decodeURIComponent(el.dataset.where.slice(i + 1));
+    row = d.data.find((r) => String(r[k]) === v);
+  }
+  return row ? row[el.dataset.field] : null;
+}
+
+dash.draw('num', (el) => {
+  const v = cellValue(el);
+  el.classList.remove('bfd-up', 'bfd-down');
+  if (v === null || v === undefined) { el.textContent = '—'; return; }
+  const f = el.dataset.fmt;
+  if (f === 'pct' || f === 'dec') el.textContent = f1(v);
+  else if (f === 'signed') { el.textContent = signed(v, f1); el.classList.add(v >= 0 ? 'bfd-up' : 'bfd-down'); }
+  else el.textContent = fmt(Math.round(v));
+});
+
+function makeTip(el) {
+  const t = document.createElement('div');
+  t.className = 'bfd-tip';
+  t.hidden = true;
+  el.appendChild(t);
+  return {
+    show(ev, lines) {
+      t.replaceChildren(...lines.map((s, i) => { const d = document.createElement('div'); if (i) d.className = 'bfd-m'; d.textContent = s; return d; }));
+      t.hidden = false;
+      const r = el.getBoundingClientRect();
+      let x = ev.clientX - r.left + 14;
+      if (x + t.offsetWidth > el.clientWidth) x = ev.clientX - r.left - t.offsetWidth - 14;
+      t.style.left = Math.max(0, x) + 'px';
+      t.style.top = Math.max(0, ev.clientY - r.top + 12) + 'px';
+    },
+    hide() { t.hidden = true; }
+  };
+}
+
+function ready(el, ids) {
+  for (const id of ids) {
+    const d = dash.data(id);
+    if (d.status === 'error') {
+      el.replaceChildren();
+      const p = document.createElement('p');
+      p.className = 'bfd-note';
+      p.textContent = '이 차트의 데이터를 불러오지 못했습니다.';
+      el.appendChild(p);
+      return null;
+    }
+    if (d.status !== 'ok' || !Array.isArray(d.data)) { el.replaceChildren(); el.textContent = '—'; return null; }
+  }
+  return ids.map((id) => dash.data(id).data);
+}
+
+function newSvg(el, W, H, aria) {
+  return d3.select(el).append('svg').attr('width', '100%').attr('height', H).attr('viewBox', `0 0 ${W} ${H}`).attr('role', 'img').attr('aria-label', aria);
+}
+
+function textW(svg, strs, cls) {
+  const g = svg.append('g');
+  let m = 0;
+  strs.forEach((s) => { const t = g.append('text').attr('class', cls || null).text(s); m = Math.max(m, t.node().getComputedTextLength() || s.length * 12); });
+  g.remove();
+  return m;
+}
+
+function legendRow(el, items) {
+  const lg = document.createElement('div');
+  lg.className = 'bfd-legend';
+  items.forEach(([kind, color, label, value]) => {
+    const s = document.createElement('span');
+    const i = document.createElement('i');
+    i.className = kind === 'dash' ? 'bfd-dash' : kind === 'line' ? 'bfd-line' : 'bfd-sw';
+    if (kind === 'sw') i.style.background = color; else i.style.borderColor = color;
+    s.append(i, document.createTextNode(label + (value ? ' ' : '')));
+    if (value) { const b = document.createElement('b'); b.textContent = value; s.appendChild(b); }
+    lg.appendChild(s);
+  });
+  el.appendChild(lg);
+}
+
+function groupBars(el, rows, o) {
+  el.replaceChildren();
+  const W = Math.max(260, el.clientWidth);
+  const n = o.series.length, labelH = 22, barH = n > 2 ? 14 : 16, gapB = 4, groupGap = 16;
+  const gH = labelH + n * barH + (n - 1) * gapB;
+  const H = rows.length * gH + (rows.length - 1) * groupGap;
+  const val = (r, s) => r[s.key];
+  const svg = newSvg(el, W, H, rows.map((r) => `${r.label}: ` + o.series.map((s) => `${s.label} ${val(r, s) === null ? '—' : o.fmt(val(r, s))}`).join(', ')).join('. '));
+  const vw = textW(svg, rows.flatMap((r) => o.series.map((s) => val(r, s) === null ? '—' : o.fmt(val(r, s)))), 'bfd-val') + 10;
+  const maxV = d3.max(rows, (r) => d3.max(o.series, (s) => val(r, s) || 0)) || 1;
+  const x = d3.scaleLinear().domain([0, maxV]).range([0, Math.max(40, W - vw)]);
+  const tip = makeTip(el);
+  rows.forEach((r, i) => {
+    const g = svg.append('g').attr('transform', `translate(0,${i * (gH + groupGap)})`);
+    g.append('text').attr('class', 'bfd-gl').attr('x', 0).attr('y', 14).text(r.label);
+    g.append('text').attr('x', W).attr('y', 14).attr('text-anchor', 'end').text(o.rateText(r));
+    o.series.forEach((s, j) => {
+      const v = val(r, s), y = labelH + j * (barH + gapB);
+      if (v !== null) {
+        g.append('rect').attr('x', 0).attr('y', y).attr('height', barH).attr('width', Math.max(2, x(v))).attr('rx', 3).style('fill', s.color)
+          .on('pointermove', (ev) => tip.show(ev, [`${r.label} · ${s.label}`, o.fmt(v)]))
+          .on('pointerleave', () => tip.hide());
+      }
+      g.append('text').attr('class', 'bfd-val').attr('x', v === null ? 0 : x(v) + 6).attr('y', y + barH / 2).attr('dy', '0.35em').text(v === null ? '—' : o.fmt(v));
+    });
+  });
+}
+
+dash.draw('revLine', (el) => {
+  const d = ready(el, ['rev_days', 'rev_summary']);
+  if (!d) return;
+  const [days, summary] = d;
+  const ch = ctl('bfd-ch', 'total'), mode = ctl('bfd-mode', 'daily');
+  const lyK = (mode === 'cum' ? 'ly_cum_' : 'ly_') + ch, tyK = (mode === 'cum' ? 'ty_cum_' : 'ty_') + ch;
+  const s = summary.find((r) => r.key === ch) || {};
+  el.replaceChildren();
+  const W = Math.max(280, el.clientWidth), H = 280, top = 18, bottom = 34, right = 12;
+  const avgs = mode === 'daily' ? [s.ly_avg || 0, s.ty_avg || 0] : [];
+  const maxV = d3.max([...days.map((r) => Math.max(r[lyK] || 0, r[tyK] || 0)), ...avgs]) || 1;
+  const y = d3.scaleLinear().domain([0, maxV * 1.08]).nice().range([H - bottom, top]);
+  const svg = newSvg(el, W, H, `${mode === 'cum' ? '누적' : '일별'} 매출 추이: ` + days.map((r) => `${r.day}일차 작년 ${r[lyK] === null ? '—' : fmt(r[lyK]) + '원'}, 올해 ${r[tyK] === null ? '—' : fmt(r[tyK]) + '원'}`).join('; '));
+  const ticks = y.ticks(4);
+  const left = textW(svg, ticks.map(won)) + 10;
+  const x = d3.scaleLinear().domain([1, days.length]).range([left + 6, W - right - 6]);
+  ticks.forEach((t) => {
+    svg.append('line').attr('x1', left).attr('x2', W - right).attr('y1', y(t)).attr('y2', y(t)).style('stroke', 'var(--cds-chart-grid)');
+    svg.append('text').attr('x', left - 8).attr('y', y(t)).attr('dy', '0.35em').attr('text-anchor', 'end').text(won(t));
+  });
+  const step = (x(2) - x(1)) < 22 ? 2 : 1;
+  days.forEach((r) => { if ((r.day - 1) % step === 0) svg.append('text').attr('x', x(r.day)).attr('y', H - bottom + 16).attr('text-anchor', 'middle').text(r.day); });
+  svg.append('text').attr('x', W - right).attr('y', H - 2).attr('text-anchor', 'end').text('행사 일차');
+  svg.append('line').attr('x1', x(11)).attr('x2', x(11)).attr('y1', top).attr('y2', H - bottom).style('stroke', 'var(--cds-chart-reference)').attr('stroke-dasharray', '3 3');
+  svg.append('text').attr('x', x(11) - 4).attr('y', top + 2).attr('dy', '0.7em').attr('text-anchor', 'end').text('올해 종료');
+  if (mode === 'daily') {
+    if (s.ly_avg) svg.append('line').attr('x1', left).attr('x2', W - right).attr('y1', y(s.ly_avg)).attr('y2', y(s.ly_avg)).style('stroke', C_LY).attr('stroke-width', 1.5).attr('stroke-dasharray', '6 4');
+    if (s.ty_avg) svg.append('line').attr('x1', left).attr('x2', W - right).attr('y1', y(s.ty_avg)).attr('y2', y(s.ty_avg)).style('stroke', dash.colors[0]).attr('stroke-width', 1.5).attr('stroke-dasharray', '6 4');
+  }
+  [[lyK, C_LY, 2], [tyK, dash.colors[0], 2.5]].forEach(([k, c, w]) => {
+    const pts = days.filter((r) => r[k] !== null);
+    svg.append('path').datum(pts).attr('d', d3.line().x((r) => x(r.day)).y((r) => y(r[k]))).style('fill', 'none').style('stroke', c).attr('stroke-width', w);
+    pts.forEach((r) => svg.append('circle').attr('cx', x(r.day)).attr('cy', y(r[k])).attr('r', 3.5).style('fill', c));
+  });
+  const guide = svg.append('line').attr('y1', top).attr('y2', H - bottom).style('stroke', 'var(--cds-chart-axis)').style('opacity', 0);
+  const tip = makeTip(el);
+  svg.append('rect').attr('x', left).attr('y', top).attr('width', Math.max(0, W - right - left)).attr('height', H - bottom - top).style('fill', 'transparent')
+    .on('pointermove', (ev) => {
+      const [mx] = d3.pointer(ev);
+      const dd = Math.min(days.length, Math.max(1, Math.round(x.invert(mx))));
+      const r = days[dd - 1];
+      guide.attr('x1', x(dd)).attr('x2', x(dd)).style('opacity', 1);
+      const rt = mode === 'cum' ? r.cum_rate : r.rate;
+      tip.show(ev, [`${dd}일차`, `작년 ${md(r.ly_date, r.ly_wd)}: ${r[lyK] === null ? '—' : fmt(r[lyK]) + '원'}`, `올해 ${md(r.ty_date, r.ty_wd)}: ${r[tyK] === null ? '—' : fmt(r[tyK]) + '원'}`].concat(ch === 'total' && rt !== null ? [`작년 대비 ${f1(rt)}%`] : []));
+    })
+    .on('pointerleave', () => { guide.style('opacity', 0); tip.hide(); });
+  const items = [['line', C_LY, '작년 2025'], ['line', dash.colors[0], '올해 2026']];
+  if (mode === 'daily') {
+    items.push(['dash', C_LY, '작년 15일 일평균', s.ly_avg ? fmt(s.ly_avg) + '원' : '—']);
+    items.push(['dash', dash.colors[0], '올해 누적 일평균', s.ty_avg ? fmt(s.ty_avg) + '원' : '—']);
+  }
+  legendRow(el, items);
+});
+
+function fillTable(tbody, id, keyField, cols, filter) {
+  const d = dash.data(id);
+  if (d.status !== 'ok' || !Array.isArray(d.data)) { tbody.replaceChildren(); return; }
+  const rows = filter ? d.data.filter(filter) : d.data;
+  tbody.replaceChildren(...rows.map((r) => {
+    const tr = document.createElement('tr');
+    tr.dataset.key = encodeURIComponent(String(r[keyField]));
+    if (r.key === 'total' || r.product === '주요 제품 합계' || r.product === '4개 제품 합계') tr.className = 'bfd-total';
+    cols.forEach((c) => {
+      const td = document.createElement('td');
+      const v = typeof c.k === 'function' ? c.k(r) : r[c.k];
+      td.textContent = (v === null || v === undefined) ? '—' : c.f ? c.f(v, r) : String(v);
+      if (c.cls) td.className = c.cls;
+      if (c.tone && typeof v === 'number') td.classList.add(v >= 0 ? 'bfd-up' : 'bfd-down');
+      if (c.status && STATUS_KEY[v]) td.classList.add({ ok: 'bfd-up', warn: 'bfd-warn', bad: 'bfd-down' }[STATUS_KEY[v]]);
+      tr.appendChild(td);
+    });
+    return tr;
+  }));
+}
+const N0 = (v) => fmt(v);
+const P1 = (v) => f1(v) + '%';
+const D1 = (v) => f1(v);
+const S1 = (v) => signed(v, f1) + '%';
+const SP = (v) => signed(v, f2);
+const SP1 = (v) => signed(v, f1) + '%p';
+
+dash.draw('revSummaryTable', (tb) => fillTable(tb, 'rev_summary', 'channel', [
+  { k: 'channel' }, { k: 'ly_sum', f: N0 }, { k: 'ly_avg', f: N0 }, { k: 'ty_sum', f: N0 }, { k: 'ty_avg', f: N0 },
+  { k: 'avg_rate', f: P1, cls: 'bfd-hl' }, { k: 'ly_same', f: N0 }, { k: 'same_rate', f: P1, cls: 'bfd-hl' },
+  { k: 'ly_share', f: P1 }, { k: 'ty_share', f: P1 }
+]));
+
+dash.draw('revDaysTable', (tb) => fillTable(tb, 'rev_days', 'day', [
+  { k: 'day', f: (v) => v + '일차' }, { k: 'ly_date', f: (v, r) => md(v, r.ly_wd), cls: 'bfd-l bfd-muted' }, { k: 'ly_total', f: N0 },
+  { k: 'ty_date', f: (v, r) => md(v, r.ty_wd), cls: 'bfd-l bfd-muted' }, { k: 'ty_total', f: N0 }, { k: 'rate', f: P1, cls: 'bfd-hl' },
+  { k: 'ly_cum_total', f: N0 }, { k: 'ty_cum_total', f: N0 }, { k: 'cum_rate', f: P1, cls: 'bfd-hl' }
+]));
+
+dash.draw('qtyAvg', (el) => {
+  const d = ready(el, ['qty_summary']);
+  if (!d) return;
+  const rows = d[0].filter((r) => r.product !== '주요 제품 합계').map((r) => ({ ...r, label: r.product }));
+  groupBars(el, rows, {
+    series: [{ key: 'ly_avg', label: '작년 15일 일평균', color: C_LY }, { key: 'ty_avg', label: '올해 누적 일평균', color: dash.colors[0] }],
+    fmt: (v) => f1(v) + '개',
+    rateText: (r) => r.avg_rate === null ? r.status : `일평균 ${f1(r.avg_rate)}%`
+  });
+});
+
+dash.draw('qtyDays', (el) => {
+  const d = ready(el, ['qty_days', 'qty_summary']);
+  if (!d) return;
+  const product = ctl('bfd-product', '맥세이프 킥프레임');
+  const rows = d[0].filter((r) => r.product === product).sort((a, b) => a.day - b.day);
+  const s = d[1].find((r) => r.product === product) || {};
+  el.replaceChildren();
+  if (!rows.length) { el.textContent = '이 제품의 판매 데이터가 없습니다.'; return; }
+  const W = Math.max(280, el.clientWidth), H = 250, top = 18, bottom = 34, right = 8;
+  const maxV = d3.max([...rows.map((r) => Math.max(r.ly || 0, r.ty || 0)), s.ly_avg || 0, s.ty_avg || 0]) || 1;
+  const y = d3.scaleLinear().domain([0, maxV * 1.12]).nice().range([H - bottom, top]);
+  const svg = newSvg(el, W, H, `${product} 일차별 판매수량: ` + rows.map((r) => `${r.day}일차 작년 ${r.ly === null ? '—' : r.ly}개, 올해 ${r.ty === null ? '—' : r.ty}개`).join('; '));
+  const ticks = y.ticks(4);
+  const left = textW(svg, ticks.map(fmt)) + 10;
+  const x0 = d3.scaleBand().domain(rows.map((r) => r.day)).range([left, W - right]).paddingInner(0.22);
+  const x1 = d3.scaleBand().domain(['ly', 'ty']).range([0, x0.bandwidth()]).padding(0.06);
+  ticks.forEach((t) => {
+    svg.append('line').attr('x1', left).attr('x2', W - right).attr('y1', y(t)).attr('y2', y(t)).style('stroke', 'var(--cds-chart-grid)');
+    svg.append('text').attr('x', left - 8).attr('y', y(t)).attr('dy', '0.35em').attr('text-anchor', 'end').text(fmt(t));
+  });
+  const tip = makeTip(el);
+  const showVals = x1.bandwidth() >= 15;
+  rows.forEach((r) => {
+    [['ly', C_LY, '작년', r.ly_date], ['ty', dash.colors[0], '올해', r.ty_date]].forEach(([k, c, lab, dt]) => {
+      const v = r[k];
+      if (v === null) return;
+      const bx = x0(r.day) + x1(k);
+      svg.append('rect').attr('x', bx).attr('y', y(v)).attr('width', x1.bandwidth()).attr('height', Math.max(1, y(0) - y(v))).attr('rx', 2).style('fill', c)
+        .on('pointermove', (ev) => tip.show(ev, [`${product} · ${r.day}일차`, `${lab} ${md(dt)}: ${fmt(v)}개`]))
+        .on('pointerleave', () => tip.hide());
+      if (showVals) svg.append('text').attr('class', 'bfd-val').attr('x', bx + x1.bandwidth() / 2).attr('y', y(v) - 4).attr('text-anchor', 'middle').style('font-size', '10px').text(v);
+    });
+    svg.append('text').attr('x', x0(r.day) + x0.bandwidth() / 2).attr('y', H - bottom + 16).attr('text-anchor', 'middle').text(r.day);
+  });
+  svg.append('text').attr('x', W - right).attr('y', H - 2).attr('text-anchor', 'end').text('행사 일차');
+  [[s.ly_avg, C_LY], [s.ty_avg, dash.colors[0]]].forEach(([v, c]) => {
+    if (v) svg.append('line').attr('x1', left).attr('x2', W - right).attr('y1', y(v)).attr('y2', y(v)).style('stroke', c).attr('stroke-width', 1.5).attr('stroke-dasharray', '6 4').style('pointer-events', 'none');
+  });
+  legendRow(el, [
+    ['sw', C_LY, '작년 2025'], ['sw', dash.colors[0], '올해 2026'],
+    ['dash', C_LY, '작년 15일 일평균', s.ly_avg === null || s.ly_avg === undefined ? '—' : f1(s.ly_avg) + '개'],
+    ['dash', dash.colors[0], '올해 누적 일평균', s.ty_avg === null || s.ty_avg === undefined ? '—' : f1(s.ty_avg) + '개']
+  ]);
+});
+
+dash.draw('qtyTable', (tb) => fillTable(tb, 'qty_summary', 'product', [
+  { k: 'product' }, { k: 'status', cls: 'bfd-l bfd-muted' }, { k: 'ly_sum', f: N0 }, { k: 'ly_avg', f: D1 },
+  { k: 'ty_sum', f: N0 }, { k: 'ty_avg', f: D1 }, { k: 'avg_rate', f: P1, cls: 'bfd-hl' }, { k: 'ly_same', f: N0 }, { k: 'same_rate', f: P1, cls: 'bfd-hl' }
+]));
+
+dash.draw('shareDonuts', (el) => {
+  const d = ready(el, ['prod_share']);
+  if (!d) return;
+  const rows = d[0];
+  el.replaceChildren();
+  const color = (i) => dash.colors[i % dash.colors.length];
+  const wrap = document.createElement('div');
+  wrap.className = 'bfd-donuts';
+  el.appendChild(wrap);
+  const tip = makeTip(el);
+  [['작년 2025 · 15일', 'ly_rev', 'ly_share'], ['올해 2026 · 누적', 'ty_rev', 'ty_share']].forEach(([label, revK, shareK]) => {
+    const box = document.createElement('div');
+    box.className = 'bfd-donut';
+    const cap = document.createElement('p');
+    cap.textContent = label;
+    box.appendChild(cap);
+    wrap.appendChild(box);
+    const S = Math.min(220, Math.max(160, (el.clientWidth || 400) / 2 - 24));
+    const R = S / 2;
+    const data = rows.filter((r) => r[revK] > 0);
+    const svg = d3.select(box).append('svg').attr('width', S).attr('height', S).attr('viewBox', `${-R} ${-R} ${S} ${S}`).attr('role', 'img')
+      .attr('aria-label', label + ' 제품별 매출 비중: ' + data.map((r) => `${r.product} ${f1(r[shareK])}%`).join(', '));
+    const pie = d3.pie().sort(null).value((r) => r[revK]);
+    const arc = d3.arc().innerRadius(R * 0.56).outerRadius(R - 2).padAngle(0.012);
+    const lab = d3.arc().innerRadius(R * 0.78).outerRadius(R * 0.78);
+    pie(data).forEach((a) => {
+      const i = rows.indexOf(a.data);
+      svg.append('path').attr('d', arc(a)).style('fill', color(i)).style('stroke', 'var(--color-panel)').attr('stroke-width', 1)
+        .on('pointermove', (ev) => tip.show(ev, [`${a.data.product} · ${label}`, `비중 ${f1(a.data[shareK])}%`, `매출(추정) ${fmt(a.data[revK])}원`]))
+        .on('pointerleave', () => tip.hide());
+      if (a.endAngle - a.startAngle > 0.42) {
+        const [cx, cy] = lab.centroid(a);
+        svg.append('text').attr('x', cx).attr('y', cy).attr('dy', '0.35em').attr('text-anchor', 'middle').style('fill', '#fff').style('font-size', '11px').style('font-weight', '600').style('pointer-events', 'none').text(Math.round(a.data[shareK]) + '%');
+      }
+    });
+    svg.append('text').attr('x', 0).attr('y', 0).attr('dy', '0.35em').attr('text-anchor', 'middle').style('fill', 'var(--color-fg)').style('font-size', '13px').text(label.slice(0, 7));
+  });
+  const tw = document.createElement('div');
+  tw.className = 'bfd-tablewrap';
+  const t = document.createElement('table');
+  t.className = 'bfd-table';
+  const head = document.createElement('tr');
+  ['제품', '작년 비중', '올해 비중', '변화'].forEach((h) => { const th = document.createElement('th'); th.textContent = h; head.appendChild(th); });
+  const thead = document.createElement('thead');
+  thead.appendChild(head);
+  const body = document.createElement('tbody');
+  rows.forEach((r, i) => {
+    const tr = document.createElement('tr');
+    const td0 = document.createElement('td');
+    const sw = document.createElement('i');
+    sw.className = 'bfd-sw';
+    sw.style.background = color(i);
+    td0.append(sw, document.createTextNode(r.product));
+    const vals = [r.ly_share === null ? '—' : f1(r.ly_share) + '%', r.ty_share === null ? '—' : f1(r.ty_share) + '%', r.share_change === null ? '—' : signed(r.share_change, f1) + '%p'];
+    tr.appendChild(td0);
+    vals.forEach((v, j) => { const td = document.createElement('td'); td.textContent = v; if (j === 2 && r.share_change !== null) td.className = r.share_change >= 0 ? 'bfd-up' : 'bfd-down'; tr.appendChild(td); });
+    body.appendChild(tr);
+  });
+  t.append(thead, body);
+  tw.appendChild(t);
+  el.appendChild(tw);
+});
+
+const METRIC = {
+  conv: { name: '판매수량(전환수)', k: 'conv', unit: '건', f: (v) => f1(v) + '건', vs: 'conv_vs7', vsF: (v) => `7일 대비 ${signed(v, f1)}%` },
+  imp: { name: '노출수', k: 'imp', unit: '회', f: (v) => f1(v) + '회', vs: 'imp_vs7', vsF: (v) => `7일 대비 ${signed(v, f1)}%` },
+  rate: { name: '전환율', k: 'rate', unit: '%', f: (v) => f2(v) + '%', vs: 'rate_vs7', vsF: (v) => `7일 대비 ${signed(v, f2)}%p` }
+};
+
+dash.draw('funnelBars', (el) => {
+  const d = ready(el, ['funnel_cmp']);
+  if (!d) return;
+  const m = METRIC[ctl('bfd-metric', 'conv')];
+  const rows = d[0].filter((r) => r.product !== '4개 제품 합계').map((r) => ({ ...r, label: r.product }));
+  groupBars(el, rows, {
+    series: [{ key: m.k + '30', label: '직전 30일 일평균', color: C_LY }, { key: m.k + '7', label: '직전 7일 일평균', color: dash.colors[1] }, { key: m.k + 'bf', label: '블프 누적 일평균', color: dash.colors[0] }],
+    fmt: m.f,
+    rateText: (r) => r[m.vs] === null ? '' : m.vsF(r[m.vs])
+  });
+});
+
+dash.draw('funnelLine', (el) => {
+  const d = ready(el, ['funnel_days', 'funnel_cmp']);
+  if (!d) return;
+  const m = METRIC[ctl('bfd-metric', 'conv')];
+  const product = ctl('bfd-fproduct', '킥프레임');
+  const parse = d3.utcParse('%Y-%m-%d');
+  const rows = d[0].filter((r) => r.product === product).map((r) => ({ ...r, t: parse(r.date), v: r[m.k] }));
+  const c = d[1].find((r) => r.product === product);
+  el.replaceChildren();
+  if (!rows.length || !c) { el.textContent = '이 제품의 데이터가 없습니다.'; return; }
+  const W = Math.max(280, el.clientWidth), H = 250, top = 22, bottom = 30, right = 10;
+  const avgs = [c[m.k + '30'], c[m.k + '7'], c[m.k + 'bf']].filter((v) => v !== null);
+  const maxV = d3.max([...rows.map((r) => r.v || 0), ...avgs]) || 1;
+  const y = d3.scaleLinear().domain([0, maxV * 1.1]).nice().range([H - bottom, top]);
+  const svg = newSvg(el, W, H, `${product} 일별 ${m.name}: ` + rows.map((r) => `${md(r.date)} ${r.v === null ? '—' : m.f(r.v)}`).join(', '));
+  const ticks = y.ticks(4);
+  const tf = m.k === 'rate' ? (v) => v + '%' : fmt;
+  const left = textW(svg, ticks.map(tf)) + 10;
+  const day = 864e5;
+  const x = d3.scaleUtc().domain([rows[0].t, rows[rows.length - 1].t]).range([left + 4, W - right - 4]);
+  const half = (x(new Date(rows[0].t.getTime() + day)) - x(rows[0].t)) / 2;
+  ticks.forEach((t) => {
+    svg.append('line').attr('x1', left).attr('x2', W - right).attr('y1', y(t)).attr('y2', y(t)).style('stroke', 'var(--cds-chart-grid)');
+    svg.append('text').attr('x', left - 8).attr('y', y(t)).attr('dy', '0.35em').attr('text-anchor', 'end').text(tf(t));
+  });
+  if (c.bf_from) {
+    const x0 = x(parse(c.bf_from)) - half, x1 = x(parse(c.bf_to)) + half;
+    svg.append('rect').attr('x', x0).attr('y', top).attr('width', Math.max(2, x1 - x0)).attr('height', H - bottom - top).style('fill', dash.colors[0]).style('opacity', 0.1);
+    svg.append('text').attr('x', x0 + 4).attr('y', top - 6).text('블프');
+  }
+  x.ticks(Math.max(2, Math.floor((W - left) / 70))).forEach((t) => svg.append('text').attr('x', x(t)).attr('y', H - bottom + 16).attr('text-anchor', 'middle').text(d3.utcFormat('%-m/%-d')(t)));
+  [[c.pre30_from, c.pre30_to, c[m.k + '30'], C_LY], [c.pre7_from, c.pre7_to, c[m.k + '7'], dash.colors[1]], [c.bf_from, c.bf_to, c[m.k + 'bf'], dash.colors[0]]].forEach(([a, b, v, col]) => {
+    if (!a || v === null) return;
+    svg.append('line').attr('x1', x(parse(a)) - half).attr('x2', x(parse(b)) + half).attr('y1', y(v)).attr('y2', y(v)).style('stroke', col).attr('stroke-width', 2.5).attr('stroke-dasharray', '6 3');
+  });
+  const pts = rows.filter((r) => r.v !== null);
+  svg.append('path').datum(pts).attr('d', d3.line().x((r) => x(r.t)).y((r) => y(r.v))).style('fill', 'none').style('stroke', 'var(--color-fg-muted)').attr('stroke-width', 1.5);
+  pts.forEach((r) => svg.append('circle').attr('cx', x(r.t)).attr('cy', y(r.v)).attr('r', r.period === '블프' ? 4 : 2.5).style('fill', r.period === '블프' ? dash.colors[0] : 'var(--color-fg-muted)'));
+  const guide = svg.append('line').attr('y1', top).attr('y2', H - bottom).style('stroke', 'var(--cds-chart-axis)').style('opacity', 0);
+  const tip = makeTip(el);
+  svg.append('rect').attr('x', left).attr('y', top).attr('width', Math.max(0, W - right - left)).attr('height', H - bottom - top).style('fill', 'transparent')
+    .on('pointermove', (ev) => {
+      const [mx] = d3.pointer(ev);
+      const t = x.invert(mx);
+      const r = rows.reduce((best, q) => Math.abs(q.t - t) < Math.abs(best.t - t) ? q : best, rows[0]);
+      guide.attr('x1', x(r.t)).attr('x2', x(r.t)).style('opacity', 1);
+      tip.show(ev, [`${product} · ${md(r.date, r.weekday)}${r.period === '블프' ? ' · 블프' : ''}`, `노출 ${fmt(r.imp)}회`, `전환 ${fmt(r.conv)}건`, `전환율 ${r.rate === null ? '—' : f2(r.rate) + '%'}`]);
+    })
+    .on('pointerleave', () => { guide.style('opacity', 0); tip.hide(); });
+  legendRow(el, [
+    ['dash', C_LY, '직전 30일 평균', c[m.k + '30'] === null ? '—' : m.f(c[m.k + '30'])],
+    ['dash', dash.colors[1], '직전 7일 평균', c[m.k + '7'] === null ? '—' : m.f(c[m.k + '7'])],
+    ['dash', dash.colors[0], '블프 누적 평균', c[m.k + 'bf'] === null ? '—' : m.f(c[m.k + 'bf'])]
+  ]);
+});
+
+dash.draw('funnelTableConv', (tb) => fillTable(tb, 'funnel_cmp', 'product', [
+  { k: 'product' }, { k: 'conv30', f: (v) => f1(v) + '건' }, { k: 'conv7', f: (v) => f1(v) + '건' }, { k: 'convbf', f: (v) => f1(v) + '건', cls: 'bfd-hl' }, { k: 'conv_vs30', f: S1, tone: true }, { k: 'conv_vs7', f: S1, tone: true }
+]));
+dash.draw('funnelTableImp', (tb) => fillTable(tb, 'funnel_cmp', 'product', [
+  { k: 'product' }, { k: 'imp30', f: (v) => f1(v) + '회' }, { k: 'imp7', f: (v) => f1(v) + '회' }, { k: 'impbf', f: (v) => f1(v) + '회', cls: 'bfd-hl' }, { k: 'imp_vs30', f: S1, tone: true }, { k: 'imp_vs7', f: S1, tone: true }
+]));
+dash.draw('funnelTableRate', (tb) => fillTable(tb, 'funnel_cmp', 'product', [
+  { k: 'product' }, { k: 'rate30', f: (v) => f2(v) + '%' }, { k: 'rate7', f: (v) => f2(v) + '%' }, { k: 'ratebf', f: (v) => f2(v) + '%', cls: 'bfd-hl' }, { k: 'rate_vs30', f: SP, tone: true }, { k: 'rate_vs7', f: SP, tone: true }
+]));
+
+dash.draw('optProductBars', (el) => {
+  const d = ready(el, ['option_cmp']);
+  if (!d) return;
+  const rows = d[0].filter((r) => r.kind === 'product').map((r) => ({ ...r, label: r.name }));
+  groupBars(el, rows, {
+    series: [{ key: 'avg30', label: '직전 30일 일평균', color: C_LY }, { key: 'avg7', label: '직전 7일 일평균', color: dash.colors[1] }, { key: 'avgbf', label: '블프 누적 일평균', color: dash.colors[0] }],
+    fmt: (v) => f1(v) + '개',
+    rateText: (r) => r.vs30 === null ? '' : `30일 대비 ${signed(r.vs30, f1)}% · 7일 대비 ${r.vs7 === null ? '—' : signed(r.vs7, f1) + '%'}`
+  });
+});
+
+dash.draw('optMix', (el) => {
+  const d = ready(el, ['option_cmp']);
+  if (!d) return;
+  const g = el.dataset.group;
+  const opts = d[0].filter((r) => r.kind === 'option' && r.group === g);
+  el.replaceChildren();
+  if (!opts.length) { el.textContent = '데이터가 없습니다.'; return; }
+  const color = (i) => dash.colors[i % dash.colors.length];
+  const short = (n) => n.replace(g + ' ', '');
+  const tip = makeTip(el);
+  const wrap = document.createElement('div');
+  wrap.className = 'bfd-donuts bfd-donuts-3';
+  el.appendChild(wrap);
+  const S = Math.min(190, Math.max(92, ((el.clientWidth || 600) - 32) / 3));
+  [['직전 30일', 'share30', 'avg30', '10/21~11/19'], ['직전 7일', 'share7', 'avg7', '11/13~11/19'], ['블프 누적', 'sharebf', 'avgbf', '11/20~']].forEach(([label, k, ak, range]) => {
+    const box = document.createElement('div');
+    box.className = 'bfd-donut';
+    const cap = document.createElement('p');
+    cap.textContent = label;
+    const sub = document.createElement('span');
+    sub.className = 'bfd-m';
+    sub.textContent = range;
+    box.append(cap, sub);
+    wrap.appendChild(box);
+    const R = S / 2;
+    const data = opts.map((o, i) => ({ o, i, v: o[k] || 0 })).filter((x) => x.v > 0);
+    const svg = d3.select(box).append('svg').attr('width', S).attr('height', S).attr('viewBox', `${-R} ${-R} ${S} ${S}`).attr('role', 'img')
+      .attr('aria-label', `${g} ${label} 옵션 비중: ` + opts.map((o) => `${short(o.name)} ${o[k] === null ? '—' : f1(o[k]) + '%'}`).join(', '));
+    const pie = d3.pie().sort(null).value((x) => x.v);
+    const arc = d3.arc().innerRadius(R * 0.55).outerRadius(R - 2).padAngle(0.012);
+    const lab = d3.arc().innerRadius(R * 0.78).outerRadius(R * 0.78);
+    pie(data).forEach((a) => {
+      svg.append('path').attr('d', arc(a)).style('fill', color(a.data.i)).style('stroke', 'var(--color-panel)').attr('stroke-width', 1)
+        .on('pointermove', (ev) => tip.show(ev, [`${a.data.o.name} · ${label}`, `비중 ${f1(a.data.v)}%`, `일평균 ${f1(a.data.o[ak])}개`]))
+        .on('pointerleave', () => tip.hide());
+      if (a.endAngle - a.startAngle > 0.45) {
+        const [cx, cy] = lab.centroid(a);
+        svg.append('text').attr('x', cx).attr('y', cy).attr('dy', '0.35em').attr('text-anchor', 'middle').style('fill', '#fff').style('font-size', '11px').style('font-weight', 600).style('pointer-events', 'none').text(Math.round(a.data.v) + '%');
+      }
+    });
+    const sk = { avg30: ['sum30', 'days30'], avg7: ['sum7', 'days7'], avgbf: ['sumbf', 'bf_days'] }[ak];
+    const dn = opts[0][sk[1]];
+    const tot = dn ? opts.reduce((s, o) => s + (o[sk[0]] || 0), 0) / dn : 0;
+    svg.append('text').attr('x', 0).attr('y', -6).attr('text-anchor', 'middle').style('fill', 'var(--color-fg-muted)').style('font-size', '11px').text('일평균');
+    svg.append('text').attr('x', 0).attr('y', 10).attr('text-anchor', 'middle').style('fill', 'var(--color-fg)').style('font-size', '14px').style('font-weight', 600).text(f1(tot) + '개');
+  });
+  legendRow(el, opts.map((o, i) => ['sw', color(i), short(o.name)]));
+});
+
+dash.draw('mixTable', (tb) => {
+  const g = tb.dataset.group;
+  fillTable(tb, 'option_cmp', 'name', [
+    { k: 'name', f: (v) => v.replace(g + ' ', '') }, { k: 'share30', f: P1 }, { k: 'share7', f: P1 }, { k: 'sharebf', f: P1, cls: 'bfd-hl' },
+    { k: 'share_vs30', f: SP1, tone: true }, { k: 'share_vs7', f: SP1, tone: true }
+  ], (r) => r.kind === 'option' && r.group === g);
+});
+
+dash.draw('optLine', (el) => {
+  const d = ready(el, ['option_trend', 'option_cmp']);
+  if (!d) return;
+  const name = ctl('bfd-opt', '킥프레임');
+  const parse = d3.utcParse('%Y-%m-%d');
+  const rows = d[0].filter((r) => r.name === name).map((r) => ({ ...r, t: parse(r.date) }));
+  const c = d[1].find((r) => r.name === name);
+  el.replaceChildren();
+  if (!rows.length || !c) { el.textContent = '이 항목의 데이터가 없습니다.'; return; }
+  const W = Math.max(280, el.clientWidth), H = 250, top = 22, bottom = 30, right = 10;
+  const maxV = d3.max([...rows.map((r) => r.qty || 0), c.avg30 || 0, c.avg7 || 0, c.avgbf || 0]) || 1;
+  const y = d3.scaleLinear().domain([0, maxV * 1.1]).nice().range([H - bottom, top]);
+  const svg = newSvg(el, W, H, `${name} 일별 판매수량: ` + rows.map((r) => `${md(r.date)} ${r.qty === null ? '—' : r.qty + '개'}`).join(', '));
+  const ticks = y.ticks(4);
+  const left = textW(svg, ticks.map(fmt)) + 10;
+  const day = 864e5;
+  const x = d3.scaleUtc().domain([rows[0].t, rows[rows.length - 1].t]).range([left + 4, W - right - 4]);
+  const half = (x(new Date(rows[0].t.getTime() + day)) - x(rows[0].t)) / 2;
+  ticks.forEach((t) => {
+    svg.append('line').attr('x1', left).attr('x2', W - right).attr('y1', y(t)).attr('y2', y(t)).style('stroke', 'var(--cds-chart-grid)');
+    svg.append('text').attr('x', left - 8).attr('y', y(t)).attr('dy', '0.35em').attr('text-anchor', 'end').text(fmt(t));
+  });
+  const bfRows = rows.filter((r) => r.period === '블프');
+  if (bfRows.length) {
+    const x0 = x(bfRows[0].t) - half, x1 = x(bfRows[bfRows.length - 1].t) + half;
+    svg.append('rect').attr('x', x0).attr('y', top).attr('width', Math.max(2, x1 - x0)).attr('height', H - bottom - top).style('fill', dash.colors[0]).style('opacity', 0.1);
+    svg.append('text').attr('x', x0 + 4).attr('y', top - 6).text('블프');
+  }
+  x.ticks(Math.max(2, Math.floor((W - left) / 70))).forEach((t) => svg.append('text').attr('x', x(t)).attr('y', H - bottom + 16).attr('text-anchor', 'middle').text(d3.utcFormat('%-m/%-d')(t)));
+  const span = (a, b) => [x(parse(a)) - half, x(parse(b)) + half];
+  [[span('2026-10-21', '2026-11-19'), c.avg30, C_LY], [span('2026-11-13', '2026-11-19'), c.avg7, dash.colors[1]], [bfRows.length ? [x(bfRows[0].t) - half, x(bfRows[bfRows.length - 1].t) + half] : null, c.avgbf, dash.colors[0]]].forEach(([sp, v, col]) => {
+    if (!sp || v === null) return;
+    svg.append('line').attr('x1', sp[0]).attr('x2', sp[1]).attr('y1', y(v)).attr('y2', y(v)).style('stroke', col).attr('stroke-width', 2.5).attr('stroke-dasharray', '6 3').style('pointer-events', 'none');
+  });
+  const pts = rows.filter((r) => r.qty !== null);
+  svg.append('path').datum(pts).attr('d', d3.line().x((r) => x(r.t)).y((r) => y(r.qty))).style('fill', 'none').style('stroke', 'var(--color-fg-muted)').attr('stroke-width', 1.5);
+  pts.forEach((r) => svg.append('circle').attr('cx', x(r.t)).attr('cy', y(r.qty)).attr('r', r.period === '블프' ? 4 : 2.5).style('fill', r.period === '블프' ? dash.colors[0] : 'var(--color-fg-muted)'));
+  const guide = svg.append('line').attr('y1', top).attr('y2', H - bottom).style('stroke', 'var(--cds-chart-axis)').style('opacity', 0);
+  const tip = makeTip(el);
+  svg.append('rect').attr('x', left).attr('y', top).attr('width', Math.max(0, W - right - left)).attr('height', H - bottom - top).style('fill', 'transparent')
+    .on('pointermove', (ev) => {
+      const [mx] = d3.pointer(ev);
+      const t = x.invert(mx);
+      const r = rows.reduce((best, q) => Math.abs(q.t - t) < Math.abs(best.t - t) ? q : best, rows[0]);
+      guide.attr('x1', x(r.t)).attr('x2', x(r.t)).style('opacity', 1);
+      tip.show(ev, [`${name} · ${md(r.date, r.weekday)}${r.period === '블프' ? ' · 블프' : ''}`, `판매 ${r.qty === null ? '—' : fmt(r.qty) + '개'}`]);
+    })
+    .on('pointerleave', () => { guide.style('opacity', 0); tip.hide(); });
+  const F = (v) => v === null ? '—' : f1(v) + '개';
+  legendRow(el, [['dash', C_LY, '직전 30일 평균', F(c.avg30)], ['dash', dash.colors[1], '직전 7일 평균', F(c.avg7)], ['dash', dash.colors[0], '블프 누적 평균', F(c.avgbf)]]);
+});
+
+dash.draw('optQtyTable', (tb) => {
+  fillTable(tb, 'option_cmp', 'name', [
+    { k: (r) => r.kind === 'option' ? '└ ' + r.name : r.name }, { k: 'avg30', f: (v) => f1(v) + '개' }, { k: 'avg7', f: (v) => f1(v) + '개' },
+    { k: 'avgbf', f: (v) => f1(v) + '개', cls: 'bfd-hl' }, { k: 'vs30', f: S1, tone: true }, { k: 'vs7', f: S1, tone: true }
+  ]);
+  const d = dash.data('option_cmp');
+  if (d.status === 'ok') [...tb.children].forEach((tr, i) => { const r = d.data[i]; if (r && r.kind === 'product') tr.classList.add('bfd-total'); else tr.classList.add('bfd-sub-row'); });
+});
+
+dash.draw('roasTable', (tb) => fillTable(tb, 'roas_days', 'day', [
+  { k: 'day', f: (v) => v + '일차' }, { k: 'date', f: (v, r) => md(v, r.weekday), cls: 'bfd-l bfd-muted' },
+  { k: 'spend', f: N0 }, { k: 'revenue', f: N0 }, { k: 'roas', f: (v) => f2(v) + '%', cls: 'bfd-hl' },
+  { k: 'cum_spend', f: N0 }, { k: 'cum_revenue', f: N0 }, { k: 'cum_roas', f: (v) => f2(v) + '%', cls: 'bfd-hl' }
+]));
+
+dash.draw('roasLine', (el) => {
+  const d = ready(el, ['roas_days']);
+  if (!d) return;
+  const days = d[0];
+  el.replaceChildren();
+  const W = Math.max(280, el.clientWidth), H = 250, top = 22, bottom = 34, right = 12;
+  const maxV = d3.max(days, (r) => Math.max(r.roas || 0, r.cum_roas || 0)) || 100;
+  const y = d3.scaleLinear().domain([0, maxV * 1.15]).nice().range([H - bottom, top]);
+  const svg = newSvg(el, W, H, '일별 ROAS: ' + days.map((r) => `${r.day}일차 ${r.roas === null ? '—' : f1(r.roas) + '%'}`).join(', '));
+  const ticks = y.ticks(4);
+  const left = textW(svg, ticks.map((t) => t + '%')) + 10;
+  const x = d3.scaleLinear().domain([1, days.length]).range([left + 10, W - right - 10]);
+  ticks.forEach((t) => {
+    svg.append('line').attr('x1', left).attr('x2', W - right).attr('y1', y(t)).attr('y2', y(t)).style('stroke', 'var(--cds-chart-grid)');
+    svg.append('text').attr('x', left - 8).attr('y', y(t)).attr('dy', '0.35em').attr('text-anchor', 'end').text(t + '%');
+  });
+  const every = (x(2) - x(1)) < 40 ? 2 : 1;
+  days.forEach((r) => { if ((r.day - 1) % every === 0) svg.append('text').attr('x', x(r.day)).attr('y', H - bottom + 16).attr('text-anchor', 'middle').text(md(r.date)); });
+  const pts = days.filter((r) => r.roas !== null);
+  svg.append('path').datum(pts).attr('d', d3.line().x((r) => x(r.day)).y((r) => y(r.cum_roas))).style('fill', 'none').style('stroke', C_LY).attr('stroke-width', 2).attr('stroke-dasharray', '6 4');
+  svg.append('path').datum(pts).attr('d', d3.line().x((r) => x(r.day)).y((r) => y(r.roas))).style('fill', 'none').style('stroke', dash.colors[0]).attr('stroke-width', 2.5);
+  pts.forEach((r) => {
+    svg.append('circle').attr('cx', x(r.day)).attr('cy', y(r.roas)).attr('r', 4).style('fill', dash.colors[0]);
+    svg.append('text').attr('class', 'bfd-val').attr('x', x(r.day)).attr('y', y(r.roas) - 9).attr('text-anchor', 'middle').text(Math.round(r.roas) + '%');
+  });
+  const guide = svg.append('line').attr('y1', top).attr('y2', H - bottom).style('stroke', 'var(--cds-chart-axis)').style('opacity', 0);
+  const tip = makeTip(el);
+  svg.append('rect').attr('x', left).attr('y', top).attr('width', Math.max(0, W - right - left)).attr('height', H - bottom - top).style('fill', 'transparent')
+    .on('pointermove', (ev) => {
+      const [mx] = d3.pointer(ev);
+      const dd = Math.min(days.length, Math.max(1, Math.round(x.invert(mx))));
+      const r = days[dd - 1];
+      guide.attr('x1', x(dd)).attr('x2', x(dd)).style('opacity', 1);
+      tip.show(ev, r.roas === null ? [`${dd}일차 · ${md(r.date, r.weekday)}`, '아직 데이터 없음'] : [`${dd}일차 · ${md(r.date, r.weekday)}`, `ROAS ${f2(r.roas)}%`, `광고비 ${fmt(r.spend)}원 · 유입매출 ${fmt(r.revenue)}원`, `누적 ROAS ${f2(r.cum_roas)}%`]);
+    })
+    .on('pointerleave', () => { guide.style('opacity', 0); tip.hide(); });
+  const last = pts[pts.length - 1];
+  legendRow(el, [['line', dash.colors[0], '일별 ROAS'], ['dash', C_LY, '누적 ROAS', last ? f2(last.cum_roas) + '%' : '—']]);
+});
+
+dash.draw('roasBars', (el) => {
+  const d = ready(el, ['roas_days']);
+  if (!d) return;
+  const days = d[0];
+  el.replaceChildren();
+  const W = Math.max(280, el.clientWidth), H = 250, top = 18, bottom = 34, right = 8;
+  const maxV = d3.max(days, (r) => Math.max(r.spend || 0, r.revenue || 0)) || 1;
+  const y = d3.scaleLinear().domain([0, maxV * 1.12]).nice().range([H - bottom, top]);
+  const svg = newSvg(el, W, H, '일별 광고비와 유입매출: ' + days.filter((r) => r.spend !== null).map((r) => `${r.day}일차 광고비 ${fmt(r.spend)}원, 유입매출 ${fmt(r.revenue)}원`).join('; '));
+  const ticks = y.ticks(4);
+  const left = textW(svg, ticks.map(won)) + 10;
+  const x0 = d3.scaleBand().domain(days.map((r) => r.day)).range([left, W - right]).paddingInner(0.22);
+  const x1 = d3.scaleBand().domain(['spend', 'revenue']).range([0, x0.bandwidth()]).padding(0.06);
+  ticks.forEach((t) => {
+    svg.append('line').attr('x1', left).attr('x2', W - right).attr('y1', y(t)).attr('y2', y(t)).style('stroke', 'var(--cds-chart-grid)');
+    svg.append('text').attr('x', left - 8).attr('y', y(t)).attr('dy', '0.35em').attr('text-anchor', 'end').text(won(t));
+  });
+  const tip = makeTip(el);
+  days.forEach((r) => {
+    [['spend', C_LY, '광고비'], ['revenue', dash.colors[0], '유입매출']].forEach(([k, c, lab]) => {
+      const v = r[k];
+      if (v === null) return;
+      svg.append('rect').attr('x', x0(r.day) + x1(k)).attr('y', y(v)).attr('width', x1.bandwidth()).attr('height', Math.max(1, y(0) - y(v))).attr('rx', 2).style('fill', c)
+        .on('pointermove', (ev) => tip.show(ev, [`${r.day}일차 · ${md(r.date, r.weekday)}`, `${lab} ${fmt(v)}원`, `ROAS ${f2(r.roas)}%`]))
+        .on('pointerleave', () => tip.hide());
+    });
+    svg.append('text').attr('x', x0(r.day) + x0.bandwidth() / 2).attr('y', H - bottom + 16).attr('text-anchor', 'middle').text(r.day);
+  });
+  svg.append('text').attr('x', W - right).attr('y', H - 2).attr('text-anchor', 'end').text('행사 일차');
+  legendRow(el, [['sw', C_LY, '광고비'], ['sw', dash.colors[0], '유입매출']]);
+});
+
+dash.draw('invTable', (tb) => fillTable(tb, 'inventory_status', 'option', [
+  { k: 'option' }, { k: 'status', cls: 'bfd-l bfd-hl', status: true }, { k: 'stockout', cls: 'bfd-l bfd-hl' }, { k: 'stock', f: N0 }, { k: 'bf_sold', f: N0 },
+  { k: 'current', f: N0, cls: 'bfd-hl' }, { k: 'avg', f: D1 }, { k: 'need', f: N0 }, { k: 'end_stock', f: N0, cls: 'bfd-hl', tone: true }, { k: 'post_avg', f: D1 }, { k: 'incoming', f: N0 }, { k: 'with_incoming', f: N0 },
+  { k: 'stockout_incoming', cls: 'bfd-l' }
+]));
+
+dash.draw('invAlerts', (el) => {
+  const d = ready(el, ['inventory_status']);
+  if (!d) return;
+  const rows = d[0].filter((r) => r.status !== '충분').sort((a, b) => (a.stockout_date || '') < (b.stockout_date || '') ? -1 : 1);
+  el.replaceChildren();
+  if (!rows.length) { const p = document.createElement('p'); p.className = 'bfd-note'; p.textContent = '행사 기간 안에 품절이 예상되는 옵션이 없습니다.'; el.appendChild(p); return; }
+  const list = document.createElement('div');
+  list.className = 'bfd-alerts';
+  rows.forEach((r) => {
+    const item = document.createElement('div');
+    item.className = 'bfd-alert';
+    const sw = document.createElement('i');
+    sw.className = 'bfd-sw';
+    sw.style.background = STATUS_COLOR[STATUS_KEY[r.status]];
+    const name = document.createElement('b');
+    name.textContent = r.option;
+    const when = document.createElement('span');
+    when.className = 'bfd-alert-when';
+    when.textContent = r.stockout;
+    const detail = document.createElement('span');
+    detail.className = 'bfd-m';
+    detail.textContent = `현재 ${fmt(r.current)}개 · 블프 일평균 ${f1(r.avg)}개 · 11/30 예상 재고 ${fmt(r.end_stock)}개 · 행사 후 일평균 ${f1(r.post_avg)}개` + (r.incoming ? ` · 입고 ${fmt(r.incoming)}개 예정 → ${r.stockout_incoming}` : '');
+    item.append(sw, name, when, detail);
+    list.appendChild(item);
+  });
+  el.appendChild(list);
+});
+
+dash.draw('invBars', (el) => {
+  const d = ready(el, ['inventory_status']);
+  if (!d) return;
+  const rows = d[0];
+  el.replaceChildren();
+  const W = Math.max(280, el.clientWidth), rowH = 34, top = 4;
+  const H = top + rows.length * rowH;
+  const labels = rows.map((r) => `${fmt(r.current)}개 · ${r.stockout}`);
+  const svg = newSvg(el, W, H, '옵션별 현재 재고: ' + rows.map((r, i) => `${r.option} ${labels[i]}, 종료까지 필요 ${fmt(r.need)}개, ${r.status}`).join('; '));
+  const lw = textW(svg, rows.map((r) => r.option), 'bfd-gl') + 12;
+  const rw = textW(svg, labels, 'bfd-val') + 12;
+  const maxV = d3.max(rows, (r) => Math.max(Math.max(0, r.current), Math.max(0, r.with_incoming || 0), r.need)) || 1;
+  const x = d3.scaleLinear().domain([0, maxV]).range([lw, Math.max(lw + 60, W - rw)]);
+  const tip = makeTip(el);
+  rows.forEach((r, i) => {
+    const y = top + i * rowH, bh = rowH - 14, cy = y + rowH / 2;
+    const col = STATUS_COLOR[STATUS_KEY[r.status]] || dash.colors[0];
+    const cur = Math.max(0, r.current);
+    const g = svg.append('g')
+      .on('pointermove', (ev) => tip.show(ev, [`${r.option} · ${r.status}`, `${r.stockout}`, `현재 재고 ${fmt(r.current)}개 · 블프 일평균 ${f1(r.avg)}개`, `11/30까지 ${r.remain_days}일 동안 필요 ${fmt(r.need)}개 → 11/30 예상 재고 ${fmt(r.end_stock)}개`, `12/1부터 직전 30일 일평균 ${f1(r.post_avg)}개로 소진`].concat(r.incoming ? [`입고 예정 ${fmt(r.incoming)}개 → 입고 후 ${fmt(r.with_incoming)}개 · ${r.stockout_incoming}`] : [])))
+      .on('pointerleave', () => tip.hide());
+    g.append('rect').attr('x', 0).attr('y', y).attr('width', W).attr('height', rowH).style('fill', 'transparent');
+    g.append('text').attr('class', 'bfd-gl').attr('x', 0).attr('y', cy).attr('dy', '0.35em').text(r.option);
+    g.append('rect').attr('x', lw).attr('y', y + 7).attr('height', bh).attr('width', Math.max(2, x(cur) - lw)).attr('rx', 3).style('fill', col);
+    if (r.incoming) g.append('rect').attr('x', x(cur)).attr('y', y + 7).attr('height', bh).attr('width', Math.max(2, x(Math.max(0, r.with_incoming)) - x(cur))).attr('rx', 3).style('fill', STATUS_COLOR.incoming).style('opacity', 0.6);
+    g.append('line').attr('x1', x(r.need)).attr('x2', x(r.need)).attr('y1', y + 3).attr('y2', y + rowH - 3).style('stroke', 'var(--color-fg)').attr('stroke-width', 2);
+    g.append('text').attr('class', 'bfd-val').attr('x', W - rw + 12).attr('y', cy).attr('dy', '0.35em').text(labels[i]);
+  });
+});
+
+dash.draw('optSpark', (el) => {
+  const d = ready(el, ['option_days', 'inventory_status']);
+  if (!d) return;
+  const [days, inv] = d;
+  el.replaceChildren();
+  const grid = document.createElement('div');
+  grid.className = 'bfd-spark';
+  el.appendChild(grid);
+  const options = [...new Set(days.map((r) => r.option))];
+  const maxV = d3.max(days, (r) => r.qty || 0) || 1;
+  options.forEach((o) => {
+    const rows = days.filter((r) => r.option === o);
+    const s = inv.find((r) => r.option === o) || {};
+    const item = document.createElement('div');
+    item.className = 'bfd-spark-item';
+    const t = document.createElement('p');
+    t.textContent = o;
+    const m = document.createElement('p');
+    m.className = 'bfd-m';
+    m.textContent = `누적 ${fmt(s.bf_sold || 0)}개 · 일평균 ${f1(s.avg || 0)}개`;
+    item.append(t, m);
+    grid.appendChild(item);
+    const W = Math.max(160, item.clientWidth || 190), H = 74, top = 14, bottom = 14;
+    const svg = d3.select(item).append('svg').attr('width', '100%').attr('height', H).attr('viewBox', `0 0 ${W} ${H}`).attr('role', 'img')
+      .attr('aria-label', `${o} 일별 판매: ` + rows.filter((r) => r.qty !== null).map((r) => `${r.day}일차 ${r.qty}개`).join(', '));
+    const x = d3.scaleBand().domain(rows.map((r) => r.day)).range([0, W]).padding(0.2);
+    const y = d3.scaleLinear().domain([0, maxV]).range([H - bottom, top]);
+    const tip = makeTip(item);
+    rows.forEach((r) => {
+      if (r.qty === null) {
+        svg.append('rect').attr('x', x(r.day)).attr('y', H - bottom - 1).attr('width', x.bandwidth()).attr('height', 1).style('fill', 'var(--cds-chart-grid)');
+        return;
+      }
+      svg.append('rect').attr('x', x(r.day)).attr('y', y(r.qty)).attr('width', x.bandwidth()).attr('height', Math.max(1, y(0) - y(r.qty))).attr('rx', 2).style('fill', dash.colors[0])
+        .on('pointermove', (ev) => tip.show(ev, [`${o} · ${r.day}일차`, `${md(r.date)}: ${fmt(r.qty)}개`]))
+        .on('pointerleave', () => tip.hide());
+      if (x.bandwidth() >= 12) svg.append('text').attr('class', 'bfd-val').attr('x', x(r.day) + x.bandwidth() / 2).attr('y', y(r.qty) - 3).attr('text-anchor', 'middle').style('font-size', '10px').text(r.qty);
+    });
+    [1, 11].forEach((dd) => svg.append('text').attr('x', x(dd) + x.bandwidth() / 2).attr('y', H - 2).attr('text-anchor', 'middle').style('font-size', '10px').text(dd + '일'));
+  });
+});
+
+/* ---- 시작 · 화면 크기 변경 · 테마 전환 ---- */
+(function () {
+  dash._start();
+  let w = window.innerWidth, timer = null;
+  window.addEventListener('resize', () => {
+    if (Math.abs(window.innerWidth - w) < 8) return;
+    w = window.innerWidth;
+    clearTimeout(timer);
+    timer = setTimeout(() => dash._redraw(), 150);
+  });
+  const btn = document.getElementById('theme-toggle'), label = document.getElementById('theme-label');
+  const sync = () => {
+    const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+    label.textContent = dark ? '라이트 모드' : '다크 모드';
+    btn.setAttribute('aria-label', dark ? '라이트 모드로 전환' : '다크 모드로 전환');
+  };
+  sync();
+  btn.addEventListener('click', () => {
+    const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    try { localStorage.setItem('bfd-theme', next); } catch (e) {}
+    sync();
+  });
+})();
+</script>
+</body>
+</html>
