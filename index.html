@@ -91,25 +91,20 @@ body {
   transition: background-color .2s ease, color .2s ease;
 }
 .page { max-width: 1120px; margin: 0 auto; padding: 16px 16px 64px; }
-.topbar {
-  position: sticky; top: 0; z-index: 20;
-  display: flex; justify-content: flex-end; align-items: center;
-  padding: 10px 16px;
-  background: color-mix(in srgb, var(--color-bg) 88%, transparent);
-  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
-}
+.topbar { display: flex; justify-content: flex-end; align-items: center; max-width: 1120px; margin: 0 auto; padding: 12px 16px 0; }
 .theme-toggle {
   display: inline-flex; align-items: center; gap: 8px;
   font: inherit; font-size: 13px; font-weight: 500;
   color: var(--color-fg);
   background: var(--color-panel);
-  border: 1px solid var(--color-border-line);
+  border: 0;
   border-radius: 999px;
   padding: 7px 14px 7px 11px;
+  background: var(--select-bg);
   cursor: pointer;
   transition: border-color .15s ease, background-color .2s ease;
 }
-.theme-toggle:hover { border-color: var(--cds-chart-axis); }
+.theme-toggle:hover { opacity: .8; }
 .theme-toggle:focus-visible { outline: 2px solid var(--c0); outline-offset: 2px; }
 .theme-toggle svg { width: 16px; height: 16px; }
 .theme-toggle .i-sun { display: none; }
@@ -173,6 +168,8 @@ body {
 .bfd-table .bfd-hl{font-weight:var(--cds-font-weight-medium)}
 .bfd-table .bfd-muted{color:var(--color-fg-muted)}
 .bfd-table tr.bfd-total td{font-weight:var(--cds-font-weight-medium);background:var(--color-bg)}
+.bfd-table tr.bfd-ly td{color:var(--color-fg-muted);border-bottom-color:transparent}
+.bfd-table tr.bfd-ly td.bfd-up,.bfd-table tr.bfd-ly td.bfd-down{opacity:.8}
 .bfd-up{color:var(--color-ok)}
 .bfd-down{color:var(--color-bad)}
 .bfd-note{color:var(--color-fg-muted);font-size:var(--cds-font-size-caption);line-height:1.6;max-width:80ch}
@@ -193,6 +190,101 @@ body {
 .bfd-spark-item p{font-size:13px}
 .bfd-spark-item .bfd-m{font-size:var(--cds-font-size-caption);color:var(--color-fg-muted);font-variant-numeric:tabular-nums}
 .bfd-pending{border:1px dashed var(--color-border-line);border-radius:var(--cds-radius);padding:var(--cds-pad-md);color:var(--color-fg-muted);font-size:13px;line-height:1.6}
+/* Apple-style layer · 회색 캔버스 위 흰 카드, 시스템 서체, 파란색 한 가지만 조작 색으로 */
+body{
+  --font-anthropic-sans:-apple-system,BlinkMacSystemFont,"SF Pro Text","Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",system-ui,sans-serif;
+  --font-anthropic-serif:-apple-system,BlinkMacSystemFont,"SF Pro Display","Apple SD Gothic Neo","Noto Sans KR",system-ui,sans-serif;
+  --cds-radius:18px;--cds-pad-lg:22px;--cds-pad-md:14px;--cds-gap-xl:56px;--cds-gap-md:16px;
+  --cds-font-weight-medium:600;
+  --color-bg:#f5f5f7;--color-panel:#ffffff;--color-fg:#1d1d1f;--color-fg-muted:#6e6e73;--color-border-line:#e5e5ea;
+  --color-ok:#248a3d;--color-warn:#b25000;--color-bad:#d70015;
+  --cds-text-secondary:#6e6e73;--cds-border:#d2d2d7;--cds-surface-popover:rgba(255,255,255,.92);--cds-shadow-popover:0 8px 30px rgba(0,0,0,.12);
+  --cds-chart-grid:#ececf0;--cds-chart-axis:#a1a1a6;--cds-chart-muted:#c7c7cc;--cds-chart-reference:#8e8e93;
+  --c0:#0071e3;--c1:#f56300;--c2:#00a3a3;--c3:#e30b5c;--c4:#8944d6;--c5:#a07a00;--c6:#3a9ef5;--c7:#e0443e;
+  --select-bg:#e8e8ed;--bfd-accent:#0066cc;--bfd-chip:#e8e8ed;--bfd-nav-bg:rgba(245,245,247,.8);--bfd-row-alt:#f5f5f7;
+  background:var(--color-bg);color:var(--color-fg);font-family:var(--font-anthropic-sans);
+  -webkit-font-smoothing:antialiased;letter-spacing:-.01em;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) body{
+  --color-bg:#000000;--color-panel:#1c1c1e;--color-fg:#f5f5f7;--color-fg-muted:#98989d;--color-border-line:#2c2c2e;
+  --color-ok:#30d158;--color-warn:#ff9f0a;--color-bad:#ff453a;
+  --cds-text-secondary:#98989d;--cds-border:#3a3a3c;--cds-surface-popover:rgba(44,44,46,.94);--cds-shadow-popover:0 8px 30px rgba(0,0,0,.5);
+  --cds-chart-grid:#2c2c2e;--cds-chart-axis:#636366;--cds-chart-muted:#48484a;--cds-chart-reference:#8e8e93;
+  --c0:#2997ff;--c1:#ff9f0a;--c2:#40c8e0;--c3:#ff375f;--c4:#bf5af2;--c5:#ffd60a;--c6:#64d2ff;--c7:#ff6961;
+  --select-bg:#2c2c2e;--bfd-accent:#2997ff;--bfd-chip:#2c2c2e;--bfd-nav-bg:rgba(0,0,0,.72);--bfd-row-alt:#2c2c2e;color-scheme:dark}}
+:root[data-theme="dark"] body{
+  --color-bg:#000000;--color-panel:#1c1c1e;--color-fg:#f5f5f7;--color-fg-muted:#98989d;--color-border-line:#2c2c2e;
+  --color-ok:#30d158;--color-warn:#ff9f0a;--color-bad:#ff453a;
+  --cds-text-secondary:#98989d;--cds-border:#3a3a3c;--cds-surface-popover:rgba(44,44,46,.94);--cds-shadow-popover:0 8px 30px rgba(0,0,0,.5);
+  --cds-chart-grid:#2c2c2e;--cds-chart-axis:#636366;--cds-chart-muted:#48484a;--cds-chart-reference:#8e8e93;
+  --c0:#2997ff;--c1:#ff9f0a;--c2:#40c8e0;--c3:#ff375f;--c4:#bf5af2;--c5:#ffd60a;--c6:#64d2ff;--c7:#ff6961;
+  --select-bg:#2c2c2e;--bfd-accent:#2997ff;--bfd-chip:#2c2c2e;--bfd-nav-bg:rgba(0,0,0,.72);--bfd-row-alt:#2c2c2e;color-scheme:dark}
+
+/* 상단 섹션 내비게이션 (반투명 유리) */
+.bfd-nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:15;margin:0 -16px;padding:0 16px;
+  background:var(--bfd-nav-bg);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);
+  border-bottom:1px solid var(--color-border-line)}
+.bfd-nav-in{display:flex;align-items:center;gap:20px;height:48px;overflow-x:auto;scrollbar-width:none}
+.bfd-nav-in::-webkit-scrollbar{display:none}
+.bfd-nav-brand{font-size:17px;font-weight:600;letter-spacing:-.02em;white-space:nowrap;color:var(--color-fg);text-decoration:none;margin-right:auto;padding-right:12px}
+.bfd-nav a.bfd-nav-link{font-size:12px;color:var(--color-fg-muted);text-decoration:none;white-space:nowrap;transition:color .15s}
+.bfd-nav a.bfd-nav-link:hover,.bfd-nav a.bfd-nav-link[aria-current="true"]{color:var(--color-fg)}
+.bfd-nav a:focus-visible{outline:2px solid var(--bfd-accent);outline-offset:3px;border-radius:4px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:16;background:var(--color-bg)}
+.bfd section[id],.bfd header[id],.bfd h3[id]{scroll-margin-top:64px}
+
+/* 타이포그래피 */
+.bfd{gap:var(--cds-gap-xl);grid-template-columns:minmax(0,1fr)}
+.bfd > *{min-width:0}
+.bfd-head{gap:14px;padding-top:40px;text-align:left}
+.bfd-eyebrow{font-size:14px;font-weight:600;letter-spacing:-.01em;color:var(--color-fg-muted)}
+.bfd-h1{font-family:var(--font-anthropic-serif);font-weight:700;font-size:clamp(2.4rem,6vw,3.5rem);line-height:1.05;letter-spacing:-.035em}
+.bfd-period{font-size:14px;line-height:1.5}
+.bfd-lede{font-size:clamp(1.1rem,2.2vw,1.3rem);line-height:1.5;letter-spacing:-.015em;max-width:44em;color:var(--color-fg)}
+.bfd-lede b{font-weight:600}
+.bfd-basis span{border:0;background:var(--bfd-chip);color:var(--color-fg-muted);border-radius:999px;padding:5px 12px;font-size:12px}
+.bfd-part{border-top:0;padding-top:0;gap:20px}
+.bfd-h2{font-family:var(--font-anthropic-serif);font-size:clamp(1.6rem,3.4vw,2.1rem);font-weight:700;letter-spacing:-.03em;line-height:1.15}
+.bfd-h3{font-size:1.15rem;font-weight:600;letter-spacing:-.02em;margin:20px 0 0}
+.bfd-note{font-size:13px;line-height:1.55}
+
+/* 카드 · 그림자/테두리 없이 면으로 구분 */
+.bfd-card{border:0;border-radius:var(--cds-radius);padding:var(--cds-pad-lg) var(--cds-pad-lg) calc(var(--cds-pad-lg) + 2px);gap:12px}
+.bfd-kpis{gap:12px}
+.bfd-kpis .bfd-card{gap:6px}
+.bfd-label{font-size:13px;font-weight:600;color:var(--color-fg-muted);letter-spacing:-.01em}
+.bfd-big{font-family:var(--font-anthropic-serif);font-weight:700;font-size:clamp(1.6rem,3vw,2.1rem);letter-spacing:-.03em;line-height:1.1;white-space:nowrap}
+.bfd-big small{font-family:var(--font-anthropic-sans);font-weight:600;font-size:1rem;letter-spacing:-.01em}
+.bfd-sub{font-size:13px}
+.bfd-card > .bfd-label:first-child,.bfd-card > p.bfd-label{font-size:15px;color:var(--color-fg);letter-spacing:-.015em}
+.bfd-kpis .bfd-card > .bfd-label:first-child{font-size:13px;color:var(--color-fg-muted)}
+.bfd-pending{border:0;background:var(--bfd-chip);border-radius:12px}
+
+/* 컨트롤 · 알약 모양 */
+.bfd .dash-select,.bfd select{border:0;border-radius:999px;background-color:var(--select-bg);color:var(--color-fg);padding:6px 30px 6px 14px;font-size:13px;font-family:inherit}
+.bfd select:focus-visible,.bfd button:focus-visible,.bfd input:focus-visible{outline:2px solid var(--bfd-accent);outline-offset:2px}
+.bfd a{color:var(--bfd-accent)}
+.bfd .bfd-nav a.bfd-nav-brand{color:var(--color-fg)}
+.bfd .bfd-nav a.bfd-nav-link{color:var(--color-fg-muted)}
+.bfd .bfd-nav a.bfd-nav-link:hover,.bfd .bfd-nav a.bfd-nav-link[aria-current="true"]{color:var(--color-fg)}
+.bfd input[type="checkbox"],.bfd input[type="radio"]{accent-color:var(--bfd-accent)}
+.bfd-legend{font-size:12px}
+.bfd-sw{border-radius:3px}
+
+/* 표 · 얇은 선, 넉넉한 행 */
+.bfd-table{font-size:13px}
+.bfd-table th,.bfd-table td{padding:10px 12px;border-bottom:1px solid var(--color-border-line)}
+.bfd-table th{font-size:11.5px;font-weight:600;color:var(--color-fg-muted);border-bottom-color:var(--color-border-line)}
+.bfd-table tbody tr:last-child td{border-bottom:0}
+.bfd-table tr.bfd-total td{background:var(--bfd-row-alt)}
+.bfd-table tr.bfd-total td:first-child{border-radius:10px 0 0 10px}
+.bfd-table tr.bfd-total td:last-child{border-radius:0 10px 10px 0}
+.bfd-tip{border:0;border-radius:12px;padding:8px 12px;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
+
+/* 차트 글자 */
+.bfd-chart text{font-family:var(--font-anthropic-sans);font-size:11.5px}
+.bfd-chart text.bfd-gl{font-size:13px;font-weight:600}
+@media (prefers-reduced-motion:reduce){.bfd-nav a{transition:none}}
 </style>
 </head>
 <body>
@@ -205,6 +297,18 @@ body {
 </div>
 <main class="page">
 <div class="bfd">
+  <nav class="bfd-nav" aria-label="섹션 이동"><div class="bfd-nav-in">
+    <a class="bfd-nav-brand" href="#overview">블프 2026</a>
+    <a class="bfd-nav-link" href="#revenue">매출</a>
+    <a class="bfd-nav-link" href="#roas">ROAS</a>
+    <a class="bfd-nav-link" href="#products">제품 수량</a>
+    <a class="bfd-nav-link" href="#price">가격 효과</a>
+    <a class="bfd-nav-link" href="#contribution">공헌이익</a>
+    <a class="bfd-nav-link" href="#share">매출 비중</a>
+    <a class="bfd-nav-link" href="#prebf">직전 대비</a>
+    <a class="bfd-nav-link" href="#options">옵션</a>
+    <a class="bfd-nav-link" href="#inventory">재고</a>
+  </div></nav>
   <header class="bfd-head" id="overview">
     <p class="bfd-eyebrow">프레임바이 · 블랙프라이데이 추이</p>
     <h1 class="bfd-h1">블프 2026 vs 2025</h1>
@@ -492,6 +596,29 @@ body {
   <section class="bfd-part" id="contribution">
     <h2 class="bfd-h2">제품별 공헌이익</h2>
     <p class="bfd-note">개당 공헌이익 = 할인가 − 원가 − 고정비(할인가의 25%) − 광고비 − 배송비(개당 3,000원, DW 제품 4,000원). 위쪽은 제품별 <b>실제 광고비</b> 기준, 아래 참고 영역은 광고비를 매출의 일정 비율(작년 19%, 올해 18%)로 가정한 계산입니다. 배송비는 판매 1개마다 1건 나간다고 보고, 할인가는 부가세를 빼지 않은 금액입니다. 맥세이프 케이스(6,000원)·DW 베이직(13,000원) 원가는 어림값입니다.</p>
+    <div class="bfd-card" id="card-unit-actual">
+      <p class="bfd-label">1개 팔 때 남는 이익 · 작년 vs 올해 (같은 일차, 실제 광고비 기준)</p>
+      <p class="bfd-note">제품 1개를 팔면 판매가(블프 할인가)에서 원가, 고정비 25%(두 해 같음), 광고비, 배송비(3,000원, DW 4,000원)가 나가고 남는 이익입니다. 광고비는 그 기간 제품별 실제 광고비 ÷ 판매수량이라 해마다 다릅니다. 원가율·광고비율은 판매가 대비입니다. 프레임팁은 FT 2개입·4개입을 합친 평균입니다. '기타' 광고비는 합계 줄에만 들어갑니다.</p>
+      <div class="bfd-tablewrap">
+        <table class="bfd-table" id="table-unit-actual" data-source="unit_actual" data-row-key="key">
+          <thead><tr>
+            <th data-field="product">제품</th>
+            <th data-field="year">기간</th>
+            <th data-field="sale">판매가</th>
+            <th data-field="cost">원가</th>
+            <th data-field="cost_rate">원가율</th>
+            <th data-field="fixed">고정비<br>25%</th>
+            <th data-field="ad">광고비</th>
+            <th data-field="ad_rate">광고비율</th>
+            <th data-field="ship">배송비</th>
+            <th data-field="profit">남은 이익</th>
+            <th data-field="profit_rate">이익률</th>
+            <th data-field="profit_chg">작년 대비</th>
+          </tr></thead>
+          <tbody data-draw="unitActualTable"></tbody>
+        </table>
+      </div>
+    </div>
     <div class="bfd-card" id="card-cost-ratio">
       <p class="bfd-label">제품별 원가·원가율 · 작년 vs 올해</p>
       <p class="bfd-note">원가율 = 원가 ÷ 가격. 블프 할인가 기준과 정상가 기준을 함께 봅니다. 원가율 변화는 할인가 기준이고, 내려가면(초록) 1개당 남는 몫이 커진 것입니다. 맥세이프 케이스·DW 베이직 원가는 어림값입니다.</p>
@@ -1597,6 +1724,66 @@ dash.calc('cost_ratio', {
   }
 });
 
+dash.calc('unit_actual', {
+  inputs: ['product_qty_daily', 'prices', 'unit_costs', 'ad_by_product'],
+  title: '1개 팔 때 남는 이익 · 작년 vs 올해 (실제 광고비)',
+  description: '제품 1개당 금액. 판매가 = 블프 할인가(프레임팁은 FT 2개입·4개입 판매 비중으로 가중 평균). 원가는 연도별 원가, 고정비 = 판매가 × 25%(두 해 동일), 광고비 = 그 기간 제품 실제 광고비 ÷ 판매수량, 배송비 = 3,000원(DW 4,000원). 남은 이익 = 판매가 − 원가 − 고정비 − 광고비 − 배송비. 기간은 광고비 집계 기간(같은 일차).',
+  fn: (qty, prices, costs, ads) => {
+    const r1 = (x) => (x === null || !isFinite(x)) ? null : Math.round(x * 10) / 10;
+    const group = (p) => p.startsWith('FT ') ? '프레임팁' : p;
+    const names = [...new Set(ads.map((x) => x.product))];
+    const out = [];
+    const per = {};
+    [2025, 2026].forEach((y) => {
+      const a = ads.filter((x) => Number(x.year) === y);
+      if (!a.length) return;
+      const start = a.reduce((m, x) => !m || x.start < m ? x.start : m, ''), end = a.reduce((m, x) => x.end > m ? x.end : m, '');
+      const acc = {};
+      qty.filter((r) => Number(r.year) === y && r.date >= start && r.date <= end).forEach((r) => {
+        const p = r.product, q = Number(r.qty);
+        if (!q) return;
+        const pr = prices.find((x) => Number(x.year) === y && x.product === p);
+        const c = costs.find((x) => Number(x.year) === y && x.product === p);
+        const s = pr ? Number(pr.sale_price) : 0;
+        const g = acc[group(p)] || (acc[group(p)] = { qty: 0, rev: 0, cost: 0, fixed: 0, ship: 0 });
+        g.qty += q; g.rev += q * s; g.cost += q * Number(c.cost); g.fixed += q * s * Number(c.fixed_rate); g.ship += q * Number(c.shipping);
+      });
+      const adOf = Object.fromEntries(a.map((x) => [x.product, Number(x.ad_spend)]));
+      const tot = { qty: 0, rev: 0, cost: 0, fixed: 0, ship: 0, ad: 0 };
+      names.forEach((p) => {
+        const g = acc[p];
+        const ad = adOf[p] || 0;
+        tot.ad += ad;
+        if (!g) return;
+        ['qty', 'rev', 'cost', 'fixed', 'ship'].forEach((k) => { tot[k] += g[k]; });
+        per[p + '|' + y] = { ...g, ad };
+      });
+      per['주요 제품 합계|' + y] = tot;
+      per['_' + y] = `${Number(start.slice(5, 7))}/${Number(start.slice(8, 10))}~${Number(end.slice(5, 7))}/${Number(end.slice(8, 10))}`;
+    });
+    [...names.filter((p) => p !== '기타'), '주요 제품 합계'].forEach((p) => {
+      [2025, 2026].forEach((y) => {
+        const g = per[p + '|' + y];
+        if (!g || !g.qty) return;
+        const u = (v) => Math.round(v / g.qty);
+        const sale = u(g.rev), cost = u(g.cost), fixed = u(g.fixed), ad = u(g.ad), ship = u(g.ship);
+        const profit = sale - cost - fixed - ad - ship;
+        const row = {
+          key: p + '|' + y, product: p, year: y === 2025 ? `작년 (${per['_' + y]})` : `올해 (${per['_' + y]})`, yr: y, qty: g.qty,
+          sale, cost, cost_rate: r1(cost / sale * 100), fixed, ad, ad_rate: r1(ad / sale * 100), ship, ship_rate: r1(ship / sale * 100),
+          profit, profit_rate: r1(profit / sale * 100), profit_chg: null
+        };
+        if (y === 2026) {
+          const prev = out.find((r) => r.key === p + '|2025');
+          if (prev) { row.profit_chg = profit - prev.profit; row.rate_chg = r1(row.profit_rate - prev.profit_rate); }
+        }
+        out.push(row);
+      });
+    });
+    return out;
+  }
+});
+
 const fmt = d3.format(',');
 const f1 = d3.format(',.1f');
 const f2 = d3.format('.2f');
@@ -2516,6 +2703,28 @@ dash.draw('costRatioTable', (tb) => fillTable(tb, 'cost_ratio', 'product', [
   { k: 'cost_chg', f: (v) => signed(v, fmt), tone: true, inv: true }, { k: 'rate_sale_diff', f: SP1, tone: true, inv: true }
 ]));
 
+dash.draw('unitActualTable', (tb) => {
+  fillTable(tb, 'unit_actual', 'key', [
+    { k: 'product' },
+    { k: 'year', cls: 'bfd-l' }, { k: 'sale', f: N0 },
+    { k: 'cost', f: N0 }, { k: 'cost_rate', f: P1, cls: 'bfd-muted' },
+    { k: 'fixed', f: N0 },
+    { k: 'ad', f: N0 }, { k: 'ad_rate', f: P1, cls: 'bfd-muted' },
+    { k: 'ship', f: N0 },
+    { k: 'profit', f: (v) => signed(v, fmt), tone: true, cls: 'bfd-hl' }, { k: 'profit_rate', f: P1, tone: true },
+    { k: 'profit_chg', f: (v) => signed(v, fmt), tone: true }
+  ]);
+  const d = dash.data('unit_actual');
+  if (d.status !== 'ok') return;
+  [...tb.children].forEach((tr, i) => {
+    const r = d.data[i];
+    if (!r) return;
+    if (r.yr === 2026 && d.data[i - 1] && d.data[i - 1].product === r.product) tr.firstChild.textContent = '';
+    else tr.classList.add('bfd-grp');
+    if (r.yr === 2025) tr.classList.add('bfd-ly');
+  });
+});
+
 dash.draw('cmAdBars', (el) => {
   const d = ready(el, ['cm_actual_ad']);
   if (!d) return;
@@ -2672,6 +2881,28 @@ dash.draw('optSpark', (el) => {
     [1, 11].forEach((dd) => svg.append('text').attr('x', x(dd) + x.bandwidth() / 2).attr('y', H - 2).attr('text-anchor', 'middle').style('font-size', '10px').text(dd + '일'));
   });
 });
+
+/* 섹션 내비게이션 · 부드럽게 이동, 현재 섹션 표시 */
+(() => {
+  const nav = document.querySelector('.bfd-nav'); if (!nav) return;
+  const links = [...nav.querySelectorAll('a[href^="#"]')];
+  const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  links.forEach((a) => a.addEventListener('click', (e) => {
+    const t = document.getElementById(a.getAttribute('href').slice(1)); if (!t) return;
+    e.preventDefault(); t.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+  }));
+  const items = links.filter((a) => a.classList.contains('bfd-nav-link'));
+  const targets = items.map((a) => document.getElementById(a.getAttribute('href').slice(1)));
+  let raf = 0;
+  const spy = () => { raf = 0;
+    let cur = -1; targets.forEach((t, i) => { if (t && t.getBoundingClientRect().top < 120) cur = i; });
+    items.forEach((a, i) => a.setAttribute('aria-current', i === cur ? 'true' : 'false'));
+    const on = items[cur]; if (on) { const box = on.parentElement, l = on.offsetLeft - box.offsetLeft;
+      if (l < box.scrollLeft || l + on.offsetWidth > box.scrollLeft + box.clientWidth) box.scrollTo({ left: l - 40, behavior: 'auto' }); }
+  };
+  window.addEventListener('scroll', () => { if (!raf) raf = requestAnimationFrame(spy); }, { passive: true });
+  spy();
+})();
 
 /* ---- 시작 · 화면 크기 변경 · 테마 전환 ---- */
 (function () {
