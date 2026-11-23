@@ -400,6 +400,93 @@ body {
     </div>
   </section>
 
+  <!-- 가격 효과 -->
+  <section class="bfd-part" id="price">
+    <h2 class="bfd-h2">가격 효과 · 수량이 줄어도 매출은?</h2>
+    <p class="bfd-note">제품 매출 = 판매수량 × 그해 블프 할인가로 추정합니다. 작년은 15일 일평균, 올해는 누적 일평균으로 비교하고(비교 기준 2), 아래 표에서 같은 일차 누적(비교 기준 1)도 봅니다. 수량 효과 = (올해 수량 − 작년 수량) × 작년 할인가, 가격 효과 = 올해 수량 × (올해 할인가 − 작년 할인가)이며 둘을 더하면 매출 변화와 같습니다.</p>
+    <div class="bfd-kpis">
+      <div class="bfd-card" id="kpi-price-qty">
+        <p class="bfd-label">주요 제품 일평균 판매수량</p>
+        <p class="bfd-big"><span data-draw="num" data-fmt="signed" data-source="price_effect" data-field="qty_chg" data-where="product=%EC%A3%BC%EC%9A%94%20%EC%A0%9C%ED%92%88%20%ED%95%A9%EA%B3%84">—</span><small>%</small></p>
+        <p class="bfd-sub">작년 <span data-draw="num" data-fmt="dec" data-source="price_effect" data-field="ly_qty" data-where="product=%EC%A3%BC%EC%9A%94%20%EC%A0%9C%ED%92%88%20%ED%95%A9%EA%B3%84">—</span>개 → 올해 <span data-draw="num" data-fmt="dec" data-source="price_effect" data-field="ty_qty" data-where="product=%EC%A3%BC%EC%9A%94%20%EC%A0%9C%ED%92%88%20%ED%95%A9%EA%B3%84">—</span>개</p>
+      </div>
+      <div class="bfd-card" id="kpi-price-rev">
+        <p class="bfd-label">주요 제품 일평균 매출(추정)</p>
+        <p class="bfd-big"><span data-draw="num" data-fmt="signed" data-source="price_effect" data-field="rev_chg" data-where="product=%EC%A3%BC%EC%9A%94%20%EC%A0%9C%ED%92%88%20%ED%95%A9%EA%B3%84">—</span><small>%</small></p>
+        <p class="bfd-sub">작년 <span data-draw="num" data-source="price_effect" data-field="ly_rev" data-where="product=%EC%A3%BC%EC%9A%94%20%EC%A0%9C%ED%92%88%20%ED%95%A9%EA%B3%84">—</span>원 → 올해 <span data-draw="num" data-source="price_effect" data-field="ty_rev" data-where="product=%EC%A3%BC%EC%9A%94%20%EC%A0%9C%ED%92%88%20%ED%95%A9%EA%B3%84">—</span>원</p>
+      </div>
+      <div class="bfd-card" id="kpi-price-effect">
+        <p class="bfd-label">가격이 메운 매출 (일평균)</p>
+        <p class="bfd-big"><span data-draw="num" data-source="price_effect" data-field="price_eff" data-where="product=%EC%A3%BC%EC%9A%94%20%EC%A0%9C%ED%92%88%20%ED%95%A9%EA%B3%84">—</span><small>원</small></p>
+        <p class="bfd-sub">수량 효과 <span data-draw="num" data-source="price_effect" data-field="qty_eff" data-where="product=%EC%A3%BC%EC%9A%94%20%EC%A0%9C%ED%92%88%20%ED%95%A9%EA%B3%84">—</span>원</p>
+      </div>
+    </div>
+    <div class="bfd-card" id="card-price-gap">
+      <p class="bfd-label">제품별 수량 변화 vs 매출 변화 · 일평균 기준 (150% 넘는 막대는 잘라서 표시)</p>
+      <div class="bfd-legend"><span><i class="bfd-sw" data-swatch="muted"></i>판매수량 변화</span><span><i class="bfd-sw" data-swatch="0"></i>매출(추정) 변화</span></div>
+      <div class="bfd-chart" id="chart-price-gap" data-draw="priceGap" data-source="price_effect"></div>
+    </div>
+    <div class="bfd-card" id="card-price-bridge">
+      <p class="bfd-label">일평균 매출 변화 나눠 보기 · 수량 효과 + 가격 효과</p>
+      <div class="bfd-legend"><span><i class="bfd-sw" data-swatch="bad"></i>매출을 줄인 효과</span><span><i class="bfd-sw" data-swatch="ok"></i>매출을 늘린 효과</span><span>진한 막대 = 수량 효과 · 연한 막대 = 가격 효과</span><span><i class="bfd-line" data-swatch-line="fg"></i>순 변화</span></div>
+      <div class="bfd-chart" id="chart-price-bridge" data-draw="priceBridge" data-source="price_effect"></div>
+    </div>
+    <div class="bfd-card" id="card-price-table">
+      <p class="bfd-label">① 블프 가격 비교</p>
+      <div class="bfd-tablewrap">
+        <table class="bfd-table" id="table-price" data-source="price_effect" data-row-key="product">
+          <thead><tr>
+            <th data-field="product">제품</th>
+            <th data-field="ly_list">작년<br>정상가</th>
+            <th data-field="ly_sale">작년<br>할인가</th>
+            <th data-field="ly_disc">작년<br>할인율</th>
+            <th data-field="ty_list">올해<br>정상가</th>
+            <th data-field="ty_sale">올해<br>할인가</th>
+            <th data-field="ty_disc">올해<br>할인율</th>
+            <th data-field="sale_chg">할인가<br>변화</th>
+          </tr></thead>
+          <tbody data-draw="priceTable"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="bfd-card" id="card-price-avg">
+      <p class="bfd-label">② 일평균 기준 · 작년 15일 일평균 vs 올해 누적 일평균</p>
+      <div class="bfd-tablewrap">
+        <table class="bfd-table" id="table-price-avg" data-source="price_effect" data-row-key="product">
+          <thead><tr>
+            <th data-field="product">제품</th>
+            <th data-field="ly_qty">작년<br>수량</th>
+            <th data-field="ty_qty">올해<br>수량</th>
+            <th data-field="qty_chg">수량<br>변화</th>
+            <th data-field="ly_rev">작년<br>매출(추정)</th>
+            <th data-field="ty_rev">올해<br>매출(추정)</th>
+            <th data-field="rev_chg">매출<br>변화</th>
+            <th data-field="qty_eff">수량<br>효과</th>
+            <th data-field="price_eff">가격<br>효과</th>
+          </tr></thead>
+          <tbody data-draw="priceAvgTable"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="bfd-card" id="card-price-same">
+      <p class="bfd-label">③ 같은 일차 누적 기준 · 작년 1~N일차 vs 올해 누적</p>
+      <div class="bfd-tablewrap">
+        <table class="bfd-table" id="table-price-same" data-source="price_effect" data-row-key="product">
+          <thead><tr>
+            <th data-field="product">제품</th>
+            <th data-field="ly_same_qty">작년 같은 일차<br>수량</th>
+            <th data-field="ty_sum_qty">올해 누적<br>수량</th>
+            <th data-field="same_qty_chg">수량<br>변화</th>
+            <th data-field="ly_same_rev">작년 같은 일차<br>매출(추정)</th>
+            <th data-field="ty_sum_rev">올해 누적<br>매출(추정)</th>
+            <th data-field="same_rev_chg">매출<br>변화</th>
+          </tr></thead>
+          <tbody data-draw="priceSameTable"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
   <!-- 제품별 매출 비중 -->
   <section class="bfd-part" id="share">
     <h2 class="bfd-h2">제품별 매출 비중</h2>
@@ -1059,6 +1146,56 @@ dash.calc('roas_summary', {
   }
 });
 
+dash.calc('price_effect', {
+  inputs: ['product_qty_daily', 'prices'],
+  title: '가격 효과 · 수량 vs 매출',
+  description: '제품 매출 = 판매수량 × 그해 블프 할인가(추정). 작년 15일 일평균 vs 올해 누적 일평균, 그리고 같은 일차 누적을 비교합니다. 수량 효과 = (올해 수량 − 작년 수량) × 작년 할인가, 가격 효과 = 올해 수량 × (올해 할인가 − 작년 할인가). 할인율 = 1 − 할인가 ÷ 정상가.',
+  fn: (qty, prices) => {
+    const r1 = (x) => (x === null || !isFinite(x)) ? null : Math.round(x * 10) / 10;
+    const rows = qty.map((r) => ({ year: Number(r.year), day: Number(r.day), product: r.product, qty: Number(r.qty) }));
+    const lyDays = Math.max(...rows.filter((r) => r.year === 2025).map((r) => r.day));
+    const tyAll = rows.filter((r) => r.year === 2026);
+    const tyDays = tyAll.length ? Math.max(...tyAll.map((r) => r.day)) : 0;
+    const pr = (y, p) => prices.find((x) => Number(x.year) === y && x.product === p) || null;
+    const chg = (a, b) => (a === null || b === null || !b) ? null : r1((a / b - 1) * 100);
+    const sumQ = (y, p, maxDay) => rows.filter((r) => r.year === y && r.product === p && (!maxDay || r.day <= maxDay)).reduce((s, r) => s + r.qty, 0);
+    const products = [...new Set(rows.map((r) => r.product))];
+    const list = products.map((p) => {
+      const lp = pr(2025, p), tp = pr(2026, p);
+      const lyS = lp ? Number(lp.sale_price) : 0, tyS = tp ? Number(tp.sale_price) : 0;
+      const hasTy = tyAll.some((r) => r.product === p);
+      const lyQ = sumQ(2025, p) / lyDays, tyQ = hasTy && tyDays ? sumQ(2026, p) / tyDays : 0;
+      const lySameQ = sumQ(2025, p, tyDays), tySumQ = hasTy ? sumQ(2026, p) : 0;
+      const lyRev = lyQ * lyS, tyRev = tyQ * tyS;
+      return {
+        product: p, status: !hasTy ? '단종·품절' : !tp ? '올해 가격 없음' : '판매 중', ty_days: tyDays,
+        ly_list: lp ? Number(lp.list_price) : null, ly_sale: lp ? lyS : null, ly_disc: lp ? r1((1 - lyS / Number(lp.list_price)) * 100) : null,
+        ty_list: tp ? Number(tp.list_price) : null, ty_sale: tp ? tyS : null, ty_disc: tp ? r1((1 - tyS / Number(tp.list_price)) * 100) : null,
+        sale_chg: lp && tp ? chg(tyS, lyS) : null,
+        ly_qty: r1(lyQ), ty_qty: r1(tyQ), qty_chg: chg(tyQ, lyQ),
+        ly_rev: Math.round(lyRev), ty_rev: Math.round(tyRev), rev_chg: chg(tyRev, lyRev),
+        qty_eff: Math.round((tyQ - lyQ) * lyS), price_eff: tp && lp ? Math.round(tyQ * (tyS - lyS)) : Math.round(tyRev - tyQ * lyS),
+        ly_same_qty: lySameQ, ty_sum_qty: tySumQ, same_qty_chg: chg(tySumQ, lySameQ),
+        ly_same_rev: Math.round(lySameQ * lyS), ty_sum_rev: Math.round(tySumQ * tyS), same_rev_chg: chg(tySumQ * tyS, lySameQ * lyS)
+      };
+    });
+    const S = (k) => list.reduce((s, r) => s + (r[k] || 0), 0);
+    const lyQ = list.reduce((s, r) => s + sumQ(2025, r.product) / lyDays, 0), tyQ = tyDays ? list.reduce((s, r) => s + sumQ(2026, r.product) / tyDays, 0) : 0;
+    const lyRev = list.reduce((s, r) => s + sumQ(2025, r.product) / lyDays * (r.ly_sale || 0), 0);
+    const tyRev = tyDays ? list.reduce((s, r) => s + sumQ(2026, r.product) / tyDays * (r.ty_sale || 0), 0) : 0;
+    const total = {
+      product: '주요 제품 합계', status: '', ty_days: tyDays,
+      ly_list: null, ly_sale: null, ly_disc: null, ty_list: null, ty_sale: null, ty_disc: null, sale_chg: null,
+      ly_qty: r1(lyQ), ty_qty: r1(tyQ), qty_chg: chg(tyQ, lyQ),
+      ly_rev: Math.round(lyRev), ty_rev: Math.round(tyRev), rev_chg: chg(tyRev, lyRev),
+      qty_eff: S('qty_eff'), price_eff: S('price_eff'),
+      ly_same_qty: S('ly_same_qty'), ty_sum_qty: S('ty_sum_qty'), same_qty_chg: chg(S('ty_sum_qty'), S('ly_same_qty')),
+      ly_same_rev: S('ly_same_rev'), ty_sum_rev: S('ty_sum_rev'), same_rev_chg: chg(S('ty_sum_rev'), S('ly_same_rev'))
+    };
+    return [...list, total];
+  }
+});
+
 const fmt = d3.format(',');
 const f1 = d3.format(',.1f');
 const f2 = d3.format('.2f');
@@ -1714,6 +1851,91 @@ dash.draw('roasBars', (el) => {
   });
   svg.append('text').attr('x', W - right).attr('y', H - 2).attr('text-anchor', 'end').text('행사 일차');
   legendRow(el, [['sw', C_LY, '광고비'], ['sw', dash.colors[0], '유입매출']]);
+});
+
+dash.draw('priceTable', (tb) => fillTable(tb, 'price_effect', 'product', [
+  { k: 'product' }, { k: 'ly_list', f: N0 }, { k: 'ly_sale', f: N0 }, { k: 'ly_disc', f: P1, cls: 'bfd-muted' },
+  { k: 'ty_list', f: N0 }, { k: 'ty_sale', f: N0, cls: 'bfd-hl' }, { k: 'ty_disc', f: P1, cls: 'bfd-muted' }, { k: 'sale_chg', f: S1, tone: true }
+], (r) => r.product !== '주요 제품 합계'));
+
+dash.draw('priceAvgTable', (tb) => fillTable(tb, 'price_effect', 'product', [
+  { k: 'product' }, { k: 'ly_qty', f: D1 }, { k: 'ty_qty', f: D1 }, { k: 'qty_chg', f: S1, tone: true },
+  { k: 'ly_rev', f: N0 }, { k: 'ty_rev', f: N0 }, { k: 'rev_chg', f: S1, tone: true, cls: 'bfd-hl' },
+  { k: 'qty_eff', f: (v) => signed(v, fmt), tone: true }, { k: 'price_eff', f: (v) => signed(v, fmt), tone: true }
+]));
+
+dash.draw('priceSameTable', (tb) => fillTable(tb, 'price_effect', 'product', [
+  { k: 'product' }, { k: 'ly_same_qty', f: N0 }, { k: 'ty_sum_qty', f: N0 }, { k: 'same_qty_chg', f: S1, tone: true },
+  { k: 'ly_same_rev', f: N0 }, { k: 'ty_sum_rev', f: N0 }, { k: 'same_rev_chg', f: S1, tone: true, cls: 'bfd-hl' }
+]));
+
+dash.draw('priceGap', (el) => {
+  const d = ready(el, ['price_effect']);
+  if (!d) return;
+  const rows = d[0].filter((r) => r.qty_chg !== null || r.rev_chg !== null);
+  el.replaceChildren();
+  const W = Math.max(280, el.clientWidth), labelH = 20, barH = 14, gap = 4, gGap = 16;
+  const gH = labelH + barH * 2 + gap;
+  const H = rows.length * gH + (rows.length - 1) * gGap + 4;
+  const series = [['qty_chg', C_LY, '판매수량'], ['rev_chg', dash.colors[0], '매출(추정)']];
+  const svg = newSvg(el, W, H, '제품별 수량 변화와 매출 변화: ' + rows.map((r) => `${r.product} 수량 ${r.qty_chg === null ? '—' : signed(r.qty_chg, f1) + '%'}, 매출 ${r.rev_chg === null ? '—' : signed(r.rev_chg, f1) + '%'}`).join('; '));
+  const vals = rows.flatMap((r) => [r.qty_chg, r.rev_chg]).filter((v) => v !== null);
+  const CAP = 150; // 아주 큰 증가율은 축을 150%에서 자르고 숫자로 실제 값을 표시
+  const lo = Math.min(-10, d3.min(vals)), hi = Math.min(CAP, Math.max(10, d3.max(vals)));
+  const pad = textW(svg, vals.map((v) => signed(v, f1) + '%'), 'bfd-val') + 10;
+  const x = d3.scaleLinear().domain([lo, hi]).range([pad, W - pad]);
+  const tip = makeTip(el);
+  svg.append('line').attr('x1', x(0)).attr('x2', x(0)).attr('y1', 0).attr('y2', H).style('stroke', 'var(--cds-chart-axis)');
+  rows.forEach((r, i) => {
+    const g = svg.append('g').attr('transform', `translate(0,${i * (gH + gGap)})`);
+    g.append('text').attr('class', 'bfd-gl').attr('x', 0).attr('y', 13).text(r.product + (r.product === '주요 제품 합계' ? '' : r.sale_chg === null ? '' : ` · 할인가 ${signed(r.sale_chg, f1)}%`));
+    series.forEach(([k, c, lab], j) => {
+      const v = r[k], y = labelH + j * (barH + gap);
+      if (v === null) return;
+      const vc = Math.min(v, hi), cut = v > hi;
+      const x0 = Math.min(x(0), x(vc)), w = Math.max(2, Math.abs(x(vc) - x(0)));
+      g.append('rect').attr('x', x0).attr('y', y).attr('width', w).attr('height', barH).attr('rx', 3).style('fill', c)
+        .on('pointermove', (ev) => tip.show(ev, [`${r.product} · ${lab}`, `${signed(v, f1)}%`, k === 'qty_chg' ? `일평균 ${f1(r.ly_qty)}개 → ${f1(r.ty_qty)}개` : `일평균 ${fmt(r.ly_rev)}원 → ${fmt(r.ty_rev)}원`]))
+        .on('pointerleave', () => tip.hide());
+      g.append('text').attr('class', 'bfd-val').attr('x', v >= 0 ? x(vc) + 5 : x(vc) - 5).attr('y', y + barH / 2).attr('dy', '0.35em').attr('text-anchor', v >= 0 ? 'start' : 'end').style('font-weight', cut ? 600 : null).text(signed(v, f1) + '%' + (cut ? ' ▸' : ''));
+      if (cut) g.append('path').attr('d', `M${x(vc) - 9},${y - 1} l4,${barH / 2 + 1} l-4,${barH / 2 + 1}`).style('fill', 'none').style('stroke', 'var(--color-panel)').attr('stroke-width', 2.5).style('pointer-events', 'none');
+    });
+  });
+});
+
+dash.draw('priceBridge', (el) => {
+  const d = ready(el, ['price_effect']);
+  if (!d) return;
+  const rows = d[0].filter((r) => r.qty_eff || r.price_eff);
+  el.replaceChildren();
+  const W = Math.max(280, el.clientWidth), rowH = 40, top = 4;
+  const H = top + rows.length * rowH;
+  const svg = newSvg(el, W, H, '일평균 매출 변화 분해: ' + rows.map((r) => `${r.product} 수량 효과 ${signed(r.qty_eff, fmt)}원, 가격 효과 ${signed(r.price_eff, fmt)}원, 순 변화 ${signed(r.qty_eff + r.price_eff, fmt)}원`).join('; '));
+  const lw = textW(svg, rows.map((r) => r.product), 'bfd-gl') + 12;
+  const nets = rows.map((r) => r.qty_eff + r.price_eff);
+  const rw = textW(svg, nets.map((v) => '순 ' + signed(v, won) + '원'), 'bfd-val') + 12;
+  const lo = Math.min(0, d3.min(rows, (r) => Math.min(r.qty_eff, 0) + Math.min(r.price_eff, 0)));
+  const hi = Math.max(0, d3.max(rows, (r) => Math.max(r.qty_eff, 0) + Math.max(r.price_eff, 0)));
+  const x = d3.scaleLinear().domain([lo, hi || 1]).range([lw, Math.max(lw + 80, W - rw)]);
+  const tip = makeTip(el);
+  svg.append('line').attr('x1', x(0)).attr('x2', x(0)).attr('y1', 0).attr('y2', H).style('stroke', 'var(--cds-chart-axis)');
+  rows.forEach((r, i) => {
+    const y = top + i * rowH, bh = 16, by = y + (rowH - bh) / 2, cy = y + rowH / 2, net = nets[i];
+    svg.append('text').attr('class', 'bfd-gl').attr('x', 0).attr('y', cy).attr('dy', '0.35em').text(r.product);
+    let neg = 0, pos = 0;
+    [['qty_eff', 'var(--color-bad)', 'var(--color-ok)', '수량 효과'], ['price_eff', 'var(--color-bad)', 'var(--color-ok)', '가격 효과']].forEach(([k, cn, cp, lab]) => {
+      const v = r[k];
+      if (!v) return;
+      const a = v < 0 ? neg : pos, b = a + v;
+      if (v < 0) neg = b; else pos = b;
+      svg.append('rect').attr('x', Math.min(x(a), x(b))).attr('y', by).attr('width', Math.max(1, Math.abs(x(b) - x(a)))).attr('height', bh).attr('rx', 2)
+        .style('fill', v < 0 ? cn : cp).style('opacity', k === 'qty_eff' ? 0.85 : 0.6)
+        .on('pointermove', (ev) => tip.show(ev, [`${r.product} · ${lab}`, `${signed(v, fmt)}원 / 일`]))
+        .on('pointerleave', () => tip.hide());
+    });
+    svg.append('line').attr('x1', x(net)).attr('x2', x(net)).attr('y1', by - 5).attr('y2', by + bh + 5).style('stroke', 'var(--color-fg)').attr('stroke-width', 2.5);
+    svg.append('text').attr('class', 'bfd-val').attr('x', Math.max(lw + 80, W - rw) + 8).attr('y', cy).attr('dy', '0.35em').style('font-weight', 600).text('순 ' + signed(net, won) + '원');
+  });
 });
 
 dash.draw('invTable', (tb) => fillTable(tb, 'inventory_status', 'option', [
