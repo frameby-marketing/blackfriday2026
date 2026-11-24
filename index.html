@@ -683,6 +683,53 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
         </table>
       </div>
     </div>
+    <div class="bfd-card" id="card-cm-unit">
+      <p class="bfd-label">개당 공헌이익 · 작년 vs 올해</p>
+      <p class="bfd-note">1개 팔 때 남는 공헌이익입니다. 개당 공헌이익 = 할인가 + 배송비 수입 − 원가 − 수수료 − 배송 원가 − 광고비. 광고비는 같은 일차(작년 <span data-draw="num" data-fmt="text" data-source="cm_cmp" data-field="ly_sd">—</span>, 올해 <span data-draw="num" data-fmt="text" data-source="cm_cmp" data-field="ty_sd">—</span>)의 제품별 실제 광고비 ÷ 판매수량입니다. 공헌이익률 = 개당 공헌이익 ÷ (할인가 + 배송비 수입). 프레임팁 할인가·원가는 2개입과 4개입을 판매수량으로 가중 평균한 값이고, 합계 행은 전체 평균입니다.</p>
+      <div class="bfd-tablewrap">
+        <table class="bfd-table" id="table-cm-unit" data-source="cm_cmp" data-row-key="product">
+          <thead><tr>
+            <th data-field="product">제품</th>
+            <th data-field="ly_sale">작년<br>할인가</th><th data-field="ly_cost">작년<br>원가</th><th data-field="ly_u_cm">작년 개당<br>공헌이익</th><th data-field="ly_u_rate">작년<br>공헌이익률</th>
+            <th data-field="ty_sale">올해<br>할인가</th><th data-field="ty_cost">올해<br>원가</th><th data-field="ty_u_cm">올해 개당<br>공헌이익</th><th data-field="ty_u_rate">올해<br>공헌이익률</th>
+            <th data-field="u_cm_diff">개당 공헌이익<br>변화</th>
+          </tr></thead>
+          <tbody data-draw="cmUnitCmp"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="bfd-card" id="card-cm-sd">
+      <p class="bfd-label">하루 평균 공헌이익 · 같은 일차</p>
+      <p class="bfd-note">작년 <span data-draw="num" data-fmt="text" data-source="cm_cmp" data-field="ly_sd">—</span>와 올해 <span data-draw="num" data-fmt="text" data-source="cm_cmp" data-field="ty_sd">—</span>, 같은 일수끼리의 하루 평균입니다. 광고비율 = 광고비 ÷ 총매출(상품매출 + 배송비 수입), 공헌이익률 = 공헌이익 ÷ 총매출. 합계의 광고비에는 기타 광고비가 들어갑니다.</p>
+      <div class="bfd-tablewrap">
+        <table class="bfd-table" id="table-cm-sd" data-source="cm_cmp" data-row-key="product">
+          <thead><tr>
+            <th data-field="product">제품</th>
+            <th data-field="sd_ly_ad">작년<br>광고비율</th><th data-field="sd_ty_ad">올해<br>광고비율</th>
+            <th data-field="sd_ly_cm">작년<br>공헌이익</th><th data-field="sd_ty_cm">올해<br>공헌이익</th>
+            <th data-field="sd_diff">차이</th><th data-field="sd_chg">변화율</th>
+            <th data-field="sd_ly_rate">작년<br>공헌이익률</th><th data-field="sd_ty_rate">올해<br>공헌이익률</th>
+          </tr></thead>
+          <tbody data-draw="cmSameDay"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="bfd-card" id="card-cm-fp">
+      <p class="bfd-label">하루 평균 공헌이익 · 작년 15일 vs 올해 누적</p>
+      <p class="bfd-note">작년 행사 전체 <span data-draw="num" data-fmt="text" data-source="cm_cmp" data-field="ly_fp">—</span>(<span data-draw="num" data-fmt="text" data-source="cm_cmp" data-field="ly_fp_days">—</span>일)의 일평균과 올해 지금까지 <span data-draw="num" data-fmt="text" data-source="cm_cmp" data-field="ty_fp">—</span>(<span data-draw="num" data-fmt="text" data-source="cm_cmp" data-field="ty_fp_days">—</span>일)의 누적 일평균입니다. 작년 제품별 광고비는 <span data-draw="num" data-fmt="text" data-source="cm_cmp" data-field="ly_sd">—</span>만 있어서, 나머지 날은 그 기간 제품별 광고비율이 같다고 보고 추정했습니다(그래서 제품별 작년 광고비율은 같은 일차 표와 같고, 합계는 15일 동안 판매 구성이 달라져 조금 다릅니다).</p>
+      <div class="bfd-tablewrap">
+        <table class="bfd-table" id="table-cm-fp" data-source="cm_cmp" data-row-key="product">
+          <thead><tr>
+            <th data-field="product">제품</th>
+            <th data-field="fp_ly_ad">작년<br>광고비율</th><th data-field="fp_ty_ad">올해<br>광고비율</th>
+            <th data-field="fp_ly_cm">작년<br>공헌이익</th><th data-field="fp_ty_cm">올해<br>공헌이익</th>
+            <th data-field="fp_diff">차이</th><th data-field="fp_chg">변화율</th>
+            <th data-field="fp_ly_rate">작년<br>공헌이익률</th><th data-field="fp_ty_rate">올해<br>공헌이익률</th>
+          </tr></thead>
+          <tbody data-draw="cmFullPeriod"></tbody>
+        </table>
+      </div>
+    </div>
     <div class="bfd-card" id="card-cost-ratio">
       <p class="bfd-label">제품별 원가·원가율 · 작년 vs 올해</p>
       <p class="bfd-note">원가율 = 원가 ÷ 가격. 블프 할인가 기준과 정상가 기준을 함께 봅니다. 원가율 변화는 할인가 기준이고, 내려가면(초록) 1개당 남는 몫이 커진 것입니다. 맥세이프 케이스·DW 베이직 원가는 어림값입니다.</p>
@@ -1517,6 +1564,81 @@ dash.calc('pnl', {
       });
     });
     return out;
+  }
+});
+
+dash.calc('cm_cmp', {
+  inputs: ['product_qty_daily', 'prices', 'unit_costs', 'ad_by_product'],
+  title: '공헌이익 작년 vs 올해 (개당 · 같은 일차 · 전체 기간)',
+  description: '공헌이익 = 상품매출 + 배송비 수입 − 제품 원가 − 수수료 − 배송 원가 − 광고비. 개당 값과 같은 일차 값은 제품별 실제 광고비 기간 기준. 전체 기간(작년 15일, 올해 누적)은 판매수량이 있는 모든 날의 일평균이고, 광고비 자료가 없는 날의 광고비는 그 제품의 실제 광고비율(광고비 ÷ 총매출)을 그 기간 총매출에 곱해 추정. 기타 광고비는 합계에만 포함. 비율은 총매출(상품매출 + 배송비 수입) 대비.',
+  fn: (qty, prices, costs, ads) => {
+    const r1 = (x) => (x === null || !isFinite(x)) ? null : Math.round(x * 10) / 10;
+    const R = Math.round;
+    const chg = (t, l) => (l ? r1((t - l) / Math.abs(l) * 100) : null);
+    const group = (p) => p.startsWith('FT ') ? '프레임팁' : p;
+    const names = [...new Set(ads.map((x) => x.product))];
+    const KEYS = ['qty', 'rev', 'sfee', 'cost', 'fee', 'scost'];
+    const lab = (a, b) => `${Number(a.slice(5, 7))}/${Number(a.slice(8, 10))}~${Number(b.slice(5, 7))}/${Number(b.slice(8, 10))}`;
+    const accum = (y, start, end) => {
+      const acc = {};
+      qty.filter((r) => Number(r.year) === y && r.date >= start && r.date <= end).forEach((r) => {
+        const q = Number(r.qty);
+        if (!q) return;
+        const pr = prices.find((x) => Number(x.year) === y && x.product === r.product);
+        const c = costs.find((x) => Number(x.year) === y && x.product === r.product);
+        if (!pr || !c) return;
+        const s = Number(pr.sale_price), sf = Number(c.ship_fee);
+        const g = acc[group(r.product)] || (acc[group(r.product)] = Object.fromEntries(KEYS.map((k) => [k, 0])));
+        g.qty += q; g.rev += q * s; g.sfee += q * sf; g.cost += q * Number(c.cost);
+        g.fee += q * (s + sf) * Number(c.fee_rate); g.scost += q * Number(c.ship_cost);
+      });
+      return acc;
+    };
+    const Y = {};
+    [2025, 2026].forEach((y) => {
+      const a = ads.filter((x) => Number(x.year) === y);
+      const dates = [...new Set(qty.filter((r) => Number(r.year) === y).map((r) => r.date))].sort();
+      if (!a.length || !dates.length) return;
+      const start = a.reduce((m, x) => !m || x.start < m ? x.start : m, ''), end = a.reduce((m, x) => x.end > m ? x.end : m, '');
+      const adOf = Object.fromEntries(a.map((x) => [x.product, Number(x.ad_spend)]));
+      const known = accum(y, start, end), full = accum(y, dates[0], dates[dates.length - 1]);
+      const sales = (g) => g ? g.rev + g.sfee : 0;
+      const tk = names.reduce((t, p) => t + sales(known[p]), 0), tf = names.reduce((t, p) => t + sales(full[p]), 0);
+      const sd = {}, fp = {};
+      const addTot = (dst, g, ad) => { const t = dst['주요 제품 합계'] || (dst['주요 제품 합계'] = Object.fromEntries([...KEYS, 'ad'].map((k) => [k, 0]))); if (g) KEYS.forEach((k) => { t[k] += g[k]; }); t.ad += ad; };
+      names.forEach((p) => {
+        const ad = adOf[p] || 0;
+        const adF = p === '기타' ? (tk ? ad * tf / tk : 0) : (sales(known[p]) ? ad * sales(full[p]) / sales(known[p]) : 0);
+        if (known[p]) sd[p] = { ...known[p], ad };
+        if (full[p]) fp[p] = { ...full[p], ad: adF };
+        addTot(sd, known[p], ad); addTot(fp, full[p], adF);
+      });
+      const days = Math.round((Date.parse(end) - Date.parse(start)) / 864e5) + 1;
+      Y[y] = { sd, fp, sdDays: days, fpDays: dates.length, sdLab: lab(start, end), fpLab: lab(dates[0], dates[dates.length - 1]), estimated: dates.length > days };
+    });
+    const m = (g, days) => {
+      if (!g || !g.qty) return null;
+      const sales = g.rev + g.sfee, cm = sales - g.cost - g.fee - g.scost - g.ad;
+      return { u_sale: R(g.rev / g.qty), u_cost: R(g.cost / g.qty), u_cm: R(cm / g.qty), u_rate: r1(cm / sales * 100), ad_rate: r1(g.ad / sales * 100), cm_day: R(cm / days), cm_rate: r1(cm / sales * 100), qty_day: r1(g.qty / days) };
+    };
+    const L = Y[2025], T = Y[2026];
+    if (!L || !T) return [];
+    const head = { ly_sd: L.sdLab, ty_sd: T.sdLab, ly_fp: L.fpLab, ty_fp: T.fpLab, ly_fp_days: L.fpDays, ty_fp_days: T.fpDays };
+    return [...names.filter((p) => p !== '기타'), '주요 제품 합계'].map((p) => {
+      const ls = m(L.sd[p], L.sdDays), ts = m(T.sd[p], T.sdDays), lf = m(L.fp[p], L.fpDays), tf = m(T.fp[p], T.fpDays);
+      const v = (o, k) => o ? o[k] : null;
+      const both = (a, b, k) => a && b ? b[k] - a[k] : null;
+      return {
+        ...head, product: p,
+        ly_sale: v(ls, 'u_sale'), ly_cost: v(ls, 'u_cost'), ly_u_cm: v(ls, 'u_cm'), ly_u_rate: v(ls, 'u_rate'),
+        ty_sale: v(ts, 'u_sale'), ty_cost: v(ts, 'u_cost'), ty_u_cm: v(ts, 'u_cm'), ty_u_rate: v(ts, 'u_rate'),
+        u_cm_diff: both(ls, ts, 'u_cm'),
+        sd_ly_ad: v(ls, 'ad_rate'), sd_ty_ad: v(ts, 'ad_rate'), sd_ly_cm: v(ls, 'cm_day'), sd_ty_cm: v(ts, 'cm_day'),
+        sd_diff: both(ls, ts, 'cm_day'), sd_chg: ls && ts ? chg(ts.cm_day, ls.cm_day) : null, sd_ly_rate: v(ls, 'cm_rate'), sd_ty_rate: v(ts, 'cm_rate'),
+        fp_ly_ad: v(lf, 'ad_rate'), fp_ty_ad: v(tf, 'ad_rate'), fp_ly_cm: v(lf, 'cm_day'), fp_ty_cm: v(tf, 'cm_day'),
+        fp_diff: both(lf, tf, 'cm_day'), fp_chg: lf && tf ? chg(tf.cm_day, lf.cm_day) : null, fp_ly_rate: v(lf, 'cm_rate'), fp_ty_rate: v(tf, 'cm_rate')
+      };
+    });
   }
 });
 
@@ -2407,6 +2529,19 @@ dash.draw('pnlUnit', (tb) => {
   ]);
   pnlGroupRows(tb);
 });
+
+const SG = (v) => signed(v, fmt);
+dash.draw('cmUnitCmp', (tb) => fillTable(tb, 'cm_cmp', 'product', [
+  { k: 'product' }, { k: 'ly_sale', f: N0 }, { k: 'ly_cost', f: N0 }, { k: 'ly_u_cm', f: SG, tone: true, cls: 'bfd-hl' }, { k: 'ly_u_rate', f: P1 },
+  { k: 'ty_sale', f: N0 }, { k: 'ty_cost', f: N0 }, { k: 'ty_u_cm', f: SG, tone: true, cls: 'bfd-hl' }, { k: 'ty_u_rate', f: P1 },
+  { k: 'u_cm_diff', f: SG, tone: true }
+]));
+['sd', 'fp'].forEach((pre) => dash.draw(pre === 'sd' ? 'cmSameDay' : 'cmFullPeriod', (tb) => fillTable(tb, 'cm_cmp', 'product', [
+  { k: 'product' }, { k: pre + '_ly_ad', f: P1 }, { k: pre + '_ty_ad', f: P1 },
+  { k: pre + '_ly_cm', f: SG, tone: true }, { k: pre + '_ty_cm', f: SG, tone: true, cls: 'bfd-hl' },
+  { k: pre + '_diff', f: SG, tone: true }, { k: pre + '_chg', f: S1, tone: true },
+  { k: pre + '_ly_rate', f: P1 }, { k: pre + '_ty_rate', f: P1, cls: 'bfd-hl' }
+])));
 
 dash.draw('invTable', (tb) => fillTable(tb, 'inventory_status', 'option', [
   { k: 'option' }, { k: 'status', cls: 'bfd-l bfd-hl', status: true }, { k: 'stockout', cls: 'bfd-l bfd-hl' }, { k: 'stock', f: N0 }, { k: 'received_label' }, { k: 'bf_sold', f: N0 },
